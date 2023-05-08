@@ -17,5 +17,5 @@ class ExceptionLoggingCog(commands.Cog, name="Exception Logging"):
             await log_channel.send(message)
 
 
-async def setup(bot: commands.Bot):
-    await bot.add_cog(ExceptionLoggingCog(bot))
+def setup(bot: commands.Bot):
+    bot.add_cog(ExceptionLoggingCog(bot))
