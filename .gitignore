@@ -1,0 +1,14 @@
+# Ignore Logging files
+.log
+
+# Google credentials
+creds.json
+
+# Environment Vars
+.env
+
+# Ignore Python VENV
+bot-env/
+
+# Ignore Python Caches
+__pycache__/

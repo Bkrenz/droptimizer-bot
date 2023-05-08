@@ -1,0 +1,1078 @@
+{
+    "boss": {
+        "-44": [
+            "Trash",
+            "https://wow.zamimg.com/images/wow/icons/large/inv_capybara_albino.jpg"
+        ],
+        "2493": [
+            "Broodkeeper Diurna",
+            "https://wow.zamimg.com/images/wow/icons/large/achievement_raidprimalist_diurna.jpg"
+        ],
+        "2499": [
+            "Raszageth the Storm Eater",
+            "https://wow.zamimg.com/images/wow/icons/large/achievement_raidprimalist_raszageth.jpg"
+        ],
+        "2491": [
+            "Kurog Grimtotem",
+            "https://wow.zamimg.com/images/wow/icons/large/achievement_raidprimalist_kurog.jpg"
+        ],
+        "2482": [
+            "Sennarth, the Cold Breath",
+            "https://wow.zamimg.com/images/wow/icons/large/achievement_raidprimalist_sennarth.jpg"
+        ],
+        "2486": [
+            "The Primal Council",
+            "https://wow.zamimg.com/images/wow/icons/large/achievement_raidprimalist_council.jpg"
+        ],
+        "2480": [
+            "Eranog",
+            "https://wow.zamimg.com/images/wow/icons/large/achievement_raidprimalist_eranog.jpg"
+        ],
+        "2500": [
+            "Terros",
+            "https://wow.zamimg.com/images/wow/icons/large/achievement_raidprimalist_terros.jpg"
+        ],
+        "2502": [
+            "Dathea, Ascended",
+            "https://wow.zamimg.com/images/wow/icons/large/achievement_raidprimalist_windelemental.jpg"
+        ],
+        "2520": [
+            "Scalecommander Sarkareth",
+            "https://render.worldofwarcraft.com/us/zones/aberrus-the-shadowed-crucible-small.jpg"
+        ],
+        "2523": [
+            "Echo of Neltharion",
+            "https://render.worldofwarcraft.com/us/zones/aberrus-the-shadowed-crucible-small.jpg"
+        ],
+        "2532": [
+            "The Vigilant Steward, Zskarn",
+            "https://render.worldofwarcraft.com/us/zones/aberrus-the-shadowed-crucible-small.jpg"
+        ],
+        "2522": [
+            "Kazzara, the Hellforged",
+            "https://render.worldofwarcraft.com/us/zones/aberrus-the-shadowed-crucible-small.jpg"
+        ],
+        "2527": [
+            "Magmorax",
+            "https://render.worldofwarcraft.com/us/zones/aberrus-the-shadowed-crucible-small.jpg"
+        ],
+        "2524": [
+            "Assault of the Zaqali",
+            "https://render.worldofwarcraft.com/us/zones/aberrus-the-shadowed-crucible-small.jpg"
+        ],
+        "2525": [
+            "Rashok, the Elder",
+            "https://render.worldofwarcraft.com/us/zones/aberrus-the-shadowed-crucible-small.jpg"
+        ],
+        "2530": [
+            "The Forgotten Experiments",
+            "https://render.worldofwarcraft.com/us/zones/aberrus-the-shadowed-crucible-small.jpg"
+        ],
+        "2529": [
+            "The Amalgamation Chamber",
+            "https://render.worldofwarcraft.com/us/zones/aberrus-the-shadowed-crucible-small.jpg"
+        ],
+        "-49": [
+            "Trash",
+            ""
+        ]
+    },
+    "item": {
+        "194308": [
+            "Manic Grieftorch",
+            "https://render.worldofwarcraft.com/us/icons/56/shaman_talent_unleashedfury.jpg"
+        ],
+        "200376": [
+            "Vault Delver's Sweatbands",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_leather_raidrogueprimalist_d_01.jpg"
+        ],
+        "195530": [
+            "Loathsome Thunderhosen",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_pant_leather_raidmonkprimalist_d_01.jpg"
+        ],
+        "196593": [
+            "Zenith Jade Forgestone (Tier Legs)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_green.jpg"
+        ],
+        "196594": [
+            "Zenith Lapis Forgestone (Tier Shoulders)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_blue.jpg"
+        ],
+        "196595": [
+            "Zenith Topaz Forgestone (Tier Head)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_bronze.jpg"
+        ],
+        "195512": [
+            "Fist of the Grand Summoner",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_hand_1h_primalistraid_d_01.jpg"
+        ],
+        "195525": [
+            "Loyal Flametender's Bracers",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_leather_raiddruidprimalist_d_01_bracer.jpg"
+        ],
+        "194305": [
+            "Controlled Current Technique",
+            "https://render.worldofwarcraft.com/us/icons/56/trade_archaeology_apexisscroll.jpg"
+        ],
+        "195510": [
+            "Frostbreath Thumper",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mace_1h_primalistraid_d_01.jpg"
+        ],
+        "202008": [
+            "Galvanic Gaiters",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_leather_raidmonkprimalist_d_01.jpg"
+        ],
+        "195509": [
+            "Ice-Climber's Cleats",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_leather_raidrogueprimalist_d_01.jpg"
+        ],
+        "195482": [
+            "Decorated Commander's Cindercloak",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_leather_raidmonkprimalist_d_01.jpg"
+        ],
+        "200370": [
+            "Vault Delver's Shinguards",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_leather_raidrogueprimalist_d_01.jpg"
+        ],
+        "194309": [
+            "Spiteful Storm",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_primalist_trinket_1ragingelement_air.jpg"
+        ],
+        "200375": [
+            "Vault Delver's Utility Belt",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_leather_raidrogueprimalist_d_01.jpg"
+        ],
+        "202004": [
+            "Brawler's Earthen Cuirass",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_chest_leather_raidmonkprimalist_d_01.jpg"
+        ],
+        "195478": [
+            "Valdrakken Protector's Turncoat",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_leather_raiddruidprimalist_d_01_chest.jpg"
+        ],
+        "196592": [
+            "Zenith Garnet Forgestone (Tier Hands)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_red.jpg"
+        ],
+        "196591": [
+            "Zenith Amethyst Forgestone (Tier Chest)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_black.jpg"
+        ],
+        "194302": [
+            "Storm-Eater's Boon",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_elementalspiritfoozles_air.jpg"
+        ],
+        "195502": [
+            "Terros's Captive Core",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_primalist_trinket_4_earth.jpg"
+        ],
+        "195526": [
+            "Seal of Filial Duty",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_primalist_ring_3_fire.jpg"
+        ],
+        "195480": [
+            "Seal of Diurna's Chosen",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_primalist_ring_2_fire.jpg"
+        ],
+        "194301": [
+            "Whispering Incarnate Icon",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_primalist_necklace_1_omni.jpg"
+        ],
+        "200377": [
+            "Vault Delver's Camouflage",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_leather_raidrogueprimalist_d_01.jpg"
+        ],
+        "195511": [
+            "Acid-Proof Webbing",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mail_raidhunterprimalist_d_01_cape.jpg"
+        ],
+        "195496": [
+            "Eye of the Vengeful Hurricane",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_primalist_necklace_1_air.jpg"
+        ],
+        "195492": [
+            "Windborne Hatsuburi",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_helm_leather_raidrogueprimalist_d_01.jpg"
+        ],
+        "201992": [
+            "Emissary's Flamewrought Seal",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_primalist_ring_1_fire.jpg"
+        ],
+        "195514": [
+            "Treacherous Totem Wraps",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_glove_leather_raidmonkprimalist_d_01.jpg"
+        ],
+        "195486": [
+            "Twisted Loam Spaulders",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shoulder_leather_raiddemonhunterprimalist_d_01.jpg"
+        ],
+        "195528": [
+            "Incarnate Sky-Splitter",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_axe_2h_primalistraid_d_01.jpg"
+        ],
+        "194306": [
+            "All-Totem of the Master",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_primalist_necklace_2_omni.jpg"
+        ],
+        "195524": [
+            "Matriarch's Opulent Girdle",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_plate_raidpaladinprimalist_d_01_belt.jpg"
+        ],
+        "195533": [
+            "Shackles of Titanic Failure",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_plate_raidpaladinprimalist_d_01_bracer.jpg"
+        ],
+        "195517": [
+            "Kurog's Thunderhooves",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_plate_raidpaladinprimalist_d_01_boot.jpg"
+        ],
+        "195518": [
+            "Imbued Qalashi Crusher",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mace_2h_primalistraid_d_01.jpg"
+        ],
+        "195477": [
+            "Scaldrons of Molten Might",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shoulder_plate_raidwarriorprimalist_d_01.jpg"
+        ],
+        "195498": [
+            "Gaze of the Living Quarry",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_helm_plate_raidwarriorprimalist_d_01.jpg"
+        ],
+        "202006": [
+            "Greathelm of Horned Fury",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_helm_plate_raiddeathknightprimalist_d_01.jpg"
+        ],
+        "195506": [
+            "Diamond-Etched Gauntlets",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_glove_plate_raiddeathknightprimalist_d_01.jpg"
+        ],
+        "195488": [
+            "Opalfang's Earthbound Legguards",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_pant_plate_raiddeathknightprimalist_d_01.jpg"
+        ],
+        "194299": [
+            "Decoration of Flame",
+            "https://render.worldofwarcraft.com/us/icons/56/ability_mage_flamecannon.jpg"
+        ],
+        "202010": [
+            "Primalist Warden's Bracers",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_plate_raidwarriorprimalist_d_01.jpg"
+        ],
+        "195494": [
+            "Dathea's Cyclonic Cage",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_plate_raidpaladinprimalist_d_01_chest.jpg"
+        ],
+        "195529": [
+            "Stormlash's Last Resort",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_knife_1h_primalistraid_d_01.jpg"
+        ],
+        "195523": [
+            "Eggtender's Safety Mitts",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestprimalist_d_01_glove.jpg"
+        ],
+        "195532": [
+            "Sandals of the Wild Sovereign",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidmageprimalist_d_01_boot.jpg"
+        ],
+        "196604": [
+            "Venerated Lapis Forgestone (Tier Shoulders)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_blue.jpg"
+        ],
+        "195513": [
+            "Scripture of Primal Devotion",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_offhand_1h_primalistraid_d_01.jpg"
+        ],
+        "196602": [
+            "Venerated Garnet Forgestone (Tier Hands)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_red.jpg"
+        ],
+        "195508": [
+            "Chilled Silken Restraints",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidmageprimalist_d_01_bracer.jpg"
+        ],
+        "194300": [
+            "Conjured Chillglobe",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_specialreagentfoozles_primalistrune_frost.jpg"
+        ],
+        "195500": [
+            "Compressed Cultist's Frock",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestprimalist_d_01_robe.jpg"
+        ],
+        "194304": [
+            "Iceblood Deathsnare",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_misc_web_01.jpg"
+        ],
+        "195485": [
+            "Councilor's Terrormask",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestprimalist_d_01_helm.jpg"
+        ],
+        "194310": [
+            "Desperate Invoker's Codex",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_inscription2_book1_color4.jpg"
+        ],
+        "194307": [
+            "Broodkeeper's Promise",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_primalist_trinket_3_omni.jpg"
+        ],
+        "195481": [
+            "Scepter of Drastic Measures",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mace_1h_primalistraid_d_02.jpg"
+        ],
+        "202007": [
+            "Woven Stone Bracelets",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_cloth_raidwarlockprimalist_d_01.jpg"
+        ],
+        "202003": [
+            "Primal Seeker's Leggings",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidmageprimalist_d_01_pant.jpg"
+        ],
+        "196601": [
+            "Venerated Amethyst Forgestone (Tier Chest)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_black.jpg"
+        ],
+        "195497": [
+            "Quake-Detecting Seismostaff",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_staff_2h_primalistraid_d_02.jpg"
+        ],
+        "195479": [
+            "Flametender's Legwraps",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestprimalist_d_01_pant.jpg"
+        ],
+        "195515": [
+            "Magatha's Spiritual Sash",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_cloth_raidwarlockprimalist_d_01.jpg"
+        ],
+        "195493": [
+            "Ascended Squallspires",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidmageprimalist_d_01_shoulder.jpg"
+        ],
+        "195531": [
+            "Calamitous Shockguards",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_glove_mail_raidevokerprimalist_d_01.jpg"
+        ],
+        "196603": [
+            "Venerated Jade Forgestone (Tier Legs)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_green.jpg"
+        ],
+        "196605": [
+            "Venerated Topaz Forgestone (Tier Head)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_bronze.jpg"
+        ],
+        "200404": [
+            "Greatcloak of Infused Earth",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_mail_raidshamanprimalist_d_01.jpg"
+        ],
+        "202009": [
+            "Lavamancer's Ceremonial Waistguard",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mail_raidhunterprimalist_d_01_belt.jpg"
+        ],
+        "195507": [
+            "Unnatural Dripstone Cinch",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_mail_raidevokerprimalist_d_01.jpg"
+        ],
+        "195476": [
+            "Eranog's Adorned Sallet",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mail_raidhunterprimalist_d_01_helm.jpg"
+        ],
+        "200402": [
+            "Faulds of Infused Earth",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_mail_raidshamanprimalist_d_01.jpg"
+        ],
+        "195499": [
+            "Faultline Mantle",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shoulder_mail_raidshamanprimalist_d_01.jpg"
+        ],
+        "202005": [
+            "Frozen Claw Mantle",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shoulder_mail_raidevokerprimalist_d_01.jpg"
+        ],
+        "195487": [
+            "Embar's Ashen Hauberk",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_chest_mail_raidshamanprimalist_d_01.jpg"
+        ],
+        "200397": [
+            "Treads of Infused Earth",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_mail_raidshamanprimalist_d_01.jpg"
+        ],
+        "195495": [
+            "Daring Chasm-Leapers",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mail_raidhunterprimalist_d_01_boot.jpg"
+        ],
+        "195516": [
+            "Surging-Song Conductors",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mail_raidhunterprimalist_d_01_bracer.jpg"
+        ],
+        "195522": [
+            "Tassets of the Tarasek Legion",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_pant_mail_raidevokerprimalist_d_01.jpg"
+        ],
+        "200403": [
+            "Cuffs of Infused Earth",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_mail_raidshamanprimalist_d_01.jpg"
+        ],
+        "195491": [
+            "Infused Stormglaives",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_glaive_1h_primalistraid_d_01.jpg"
+        ],
+        "200349": [
+            "Skybound Avenger's Wristbands",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_leather_raiddemonhunterprimalist_d_01.jpg"
+        ],
+        "196589": [
+            "Dreadful Lapis Forgestone (Tier Shoulders)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_blue.jpg"
+        ],
+        "196588": [
+            "Dreadful Jade Forgestone (Tier Legs)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_green.jpg"
+        ],
+        "196587": [
+            "Dreadful Garnet Forgestone (Tier Hands)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_red.jpg"
+        ],
+        "196586": [
+            "Dreadful Amethyst Forgestone (Tier Chest)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_black.jpg"
+        ],
+        "200343": [
+            "Skybound Avenger's Boots",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_leather_raiddemonhunterprimalist_d_01.jpg"
+        ],
+        "200348": [
+            "Skybound Avenger's Waistwrap",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_leather_raiddemonhunterprimalist_d_01.jpg"
+        ],
+        "195501": [
+            "Fused Shale Waistband",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_leather_raiddemonhunterprimalist_d_01.jpg"
+        ],
+        "200350": [
+            "Skybound Avenger's Cape",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_leather_raiddemonhunterprimalist_d_01.jpg"
+        ],
+        "195484": [
+            "Icewrath's Channeling Conduit",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_offhand_1h_primalistraid_d_02.jpg"
+        ],
+        "196590": [
+            "Dreadful Topaz Forgestone (Tier Head)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_bronze.jpg"
+        ],
+        "196599": [
+            "Mystic Lapis Forgestone (Tier Shoulders)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_blue.jpg"
+        ],
+        "196600": [
+            "Mystic Topaz Forgestone (Tier Head)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_bronze.jpg"
+        ],
+        "196596": [
+            "Mystic Amethyst Forgestone (Tier Chest)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_black.jpg"
+        ],
+        "196597": [
+            "Mystic Garnet Forgestone (Tier Hands)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_red.jpg"
+        ],
+        "196598": [
+            "Mystic Jade Forgestone (Tier Legs)",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_jewelcrafting_gem3primal_fire_cut_green.jpg"
+        ],
+        "200334": [
+            "Scalesworn Cultist's Sandals",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_cloth_raidwarlockprimalist_d_01.jpg"
+        ],
+        "200341": [
+            "Scalesworn Cultist's Runedrape",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_cloth_raidwarlockprimalist_d_01.jpg"
+        ],
+        "200340": [
+            "Scalesworn Cultist's Wristwraps",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_cloth_raidwarlockprimalist_d_01.jpg"
+        ],
+        "200339": [
+            "Scalesworn Cultist's Girdle",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_cloth_raidwarlockprimalist_d_01.jpg"
+        ],
+        "195490": [
+            "Searing Blazecaster",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_crossbow_2h_primalistraid_d_01.jpg"
+        ],
+        "195527": [
+            "Neltharax, Enemy of the Sky",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bow_1h_primalistraid_d_01.jpg"
+        ],
+        "200357": [
+            "Lost Landcaller's Sash",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_leather_raiddruidprimalist_d_01_belt.jpg"
+        ],
+        "200352": [
+            "Lost Landcaller's Moccasins",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_leather_raiddruidprimalist_d_01_boot.jpg"
+        ],
+        "200358": [
+            "Lost Landcaller's Bindings",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_leather_raiddruidprimalist_d_01_bracer.jpg"
+        ],
+        "200359": [
+            "Lost Landcaller's Laena",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_leather_raiddruidprimalist_d_01_cape.jpg"
+        ],
+        "195503": [
+            "Enduring Shard of Terros",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_knife_1h_primalistraid_d_02.jpg"
+        ],
+        "195521": [
+            "Ornamental Drakonid Claw",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_knife_1h_primalistraid_d_01.jpg"
+        ],
+        "200413": [
+            "Drape of the Haunted Frostbrood",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_plate_raiddeathknightprimalist_d_01.jpg"
+        ],
+        "200412": [
+            "Vambraces of the Haunted Frostbrood",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_plate_raiddeathknightprimalist_d_01.jpg"
+        ],
+        "194303": [
+            "Rumbling Ruby",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_primalist_trinket_3_fire.jpg"
+        ],
+        "200406": [
+            "Sabatons of the Haunted Frostbrood",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_plate_raiddeathknightprimalist_d_01.jpg"
+        ],
+        "200411": [
+            "Girdle of the Haunted Frostbrood",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_plate_raiddeathknightprimalist_d_01.jpg"
+        ],
+        "200316": [
+            "Crystal Scholar's Footwraps",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidmageprimalist_d_01_boot.jpg"
+        ],
+        "200322": [
+            "Crystal Scholar's Cuffs",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidmageprimalist_d_01_bracer.jpg"
+        ],
+        "200323": [
+            "Crystal Scholar's Cape",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidmageprimalist_d_01_cape.jpg"
+        ],
+        "200321": [
+            "Crystal Scholar's Cinch",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidmageprimalist_d_01_belt.jpg"
+        ],
+        "195519": [
+            "Kharnalex, The First Light",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_staff_2h_dragondungeon_c_02.jpg"
+        ],
+        "195520": [
+            "Broodsworn Legionnaire's Pavise",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shield_1h_primalistraid_d_01.jpg"
+        ],
+        "195475": [
+            "Flame Marshal's Bulwark",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shield_1h_primalistraid_d_02.jpg"
+        ],
+        "200332": [
+            "Draconic Hierophant's Drape",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestprimalist_d_01_cape.jpg"
+        ],
+        "200331": [
+            "Draconic Hierophant's Wristbands",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestprimalist_d_01_bracer.jpg"
+        ],
+        "200330": [
+            "Draconic Hierophant's Sash",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestprimalist_d_01_belt.jpg"
+        ],
+        "200325": [
+            "Draconic Hierophant's Slippers",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestprimalist_d_01_boot.jpg"
+        ],
+        "195483": [
+            "Awak'mani, Grimtotem's Legacy",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_polearm_2h_primalistraid_d_01.jpg"
+        ],
+        "195504": [
+            "Awakened Planar Pillar",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_staff_2h_primalistraid_d_01.jpg"
+        ],
+        "200379": [
+            "Treads of the Awakened",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_mail_raidevokerprimalist_d_01.jpg"
+        ],
+        "200386": [
+            "Shroud of the Awakened",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_mail_raidevokerprimalist_d_01.jpg"
+        ],
+        "200384": [
+            "Chain of the Awakened",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_mail_raidevokerprimalist_d_01.jpg"
+        ],
+        "200385": [
+            "Bracers of the Awakened",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_mail_raidevokerprimalist_d_01.jpg"
+        ],
+        "200430": [
+            "Bracers of the Walking Mountain",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_plate_raidwarriorprimalist_d_01.jpg"
+        ],
+        "200429": [
+            "Core of the Walking Mountain",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_plate_raidwarriorprimalist_d_01.jpg"
+        ],
+        "200431": [
+            "Drape of the Walking Mountain",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_plate_raidwarriorprimalist_d_01.jpg"
+        ],
+        "200424": [
+            "Boots of the Walking Mountain",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_plate_raidwarriorprimalist_d_01.jpg"
+        ],
+        "200388": [
+            "Stormwing Harrier's Sabatons",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mail_raidhunterprimalist_d_01_boot.jpg"
+        ],
+        "200394": [
+            "Stormwing Harrier's Wristguards",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mail_raidhunterprimalist_d_01_bracer.jpg"
+        ],
+        "200395": [
+            "Stormwing Harrier's Plumage",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mail_raidhunterprimalist_d_01_cape.jpg"
+        ],
+        "200393": [
+            "Stormwing Harrier's Belt",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mail_raidhunterprimalist_d_01_belt.jpg"
+        ],
+        "200367": [
+            "Cuffs of the Waking Fist",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_leather_raidmonkprimalist_d_01.jpg"
+        ],
+        "200361": [
+            "Gaiters of the Waking Fist",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_leather_raidmonkprimalist_d_01.jpg"
+        ],
+        "200366": [
+            "Girdle of the Waking Fist",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_leather_raidmonkprimalist_d_01.jpg"
+        ],
+        "200368": [
+            "Drape of the Waking Fist",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_leather_raidmonkprimalist_d_01.jpg"
+        ],
+        "195505": [
+            "Caustic Coldsteel Slicer",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_sword_1h_primalistraid_d_01.jpg"
+        ],
+        "195489": [
+            "Maul of the Earthshaper",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mace_1h_primalistraid_d_01.jpg"
+        ],
+        "204465": [
+            "Voice of the Silent Star",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_cape.jpg"
+        ],
+        "204201": [
+            "Neltharion's Call to Chaos",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_dragon_trinket_5_red.jpg"
+        ],
+        "202606": [
+            "Ashkandur, Fall of the Brotherhood",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_sword_2h_dragonraid_d_01.jpg"
+        ],
+        "203963": [
+            "Beacon to the Beyond",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cosmicvoid_orb.jpg"
+        ],
+        "204398": [
+            "Onyx Impostor's Birthright",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_dragon_ring_1signet_black.jpg"
+        ],
+        "202453": [
+            "Heartfire Sentinel's Protectors",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_glove_plate_raidpaladindragon_d_01.jpg"
+        ],
+        "202601": [
+            "Twisted Vision's Demigaunts",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_glove_plate_raidwarriordragon_d_01.jpg"
+        ],
+        "202448": [
+            "Heartfire Sentinel's Blessed Bindings",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_plate_raidpaladindragon_d_01.jpg"
+        ],
+        "204390": [
+            "Bonds of Desperate Ascension",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_plate_raidwarriordragon_d_01.jpg"
+        ],
+        "202455": [
+            "Heartfire Sentinel's Brigandine",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_chest_plate_raidpaladindragon_d_01.jpg"
+        ],
+        "202447": [
+            "Heartfire Sentinel's Pelerine",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_plate_raidpaladindragon_d_01.jpg"
+        ],
+        "204467": [
+            "Drape of the Dracthyr Trials",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_mail_raidevokerdragon_d_01.jpg"
+        ],
+        "202612": [
+            "Screaming Black Dragonscale",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_misc_rubysanctum2.jpg"
+        ],
+        "202454": [
+            "Heartfire Sentinel's Greatboots",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_raidpaladindragon_d_01.jpg"
+        ],
+        "204396": [
+            "Spittle-Resistant Sollerets",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_plate_raidwarriordragon_d_01.jpg"
+        ],
+        "202613": [
+            "Zaqali Chaos Grapnel",
+            "https://render.worldofwarcraft.com/us/icons/56/ability_rogue_rollthebones06.jpg"
+        ],
+        "202450": [
+            "Heartfire Sentinel's Steelwings",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shoulder_raidpaladindragon_d_01.jpg"
+        ],
+        "202597": [
+            "Obsidian Guard's Chausses",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_pant_plate_raidwarriordragon_d_01.jpg"
+        ],
+        "202592": [
+            "Unyielding Goliath's Burgonet",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_helm_plate_raidwarriordragon_d_01.jpg"
+        ],
+        "202573": [
+            "Etchings of the Captive Revenant",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_mail_raidshamandragon_d_01.jpg"
+        ],
+        "202576": [
+            "Dreadrift Stompers",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_plate_raiddeathknightdragon_d_01.jpg"
+        ],
+        "202451": [
+            "Heartfire Sentinel's Faulds",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_pant_plate_raidpaladindragon_d_01.jpg"
+        ],
+        "202595": [
+            "Shoulderplates of Planar Isolation",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shoulder_raidpaladindragon_d_01.jpg"
+        ],
+        "202572": [
+            "Entropic Convergence Loop",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_dragon_ring_2coiledserpent_black.jpg"
+        ],
+        "204466": [
+            "Tormentor's Siphoning Signet",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_primalist_ring_4_fire.jpg"
+        ],
+        "202452": [
+            "Heartfire Sentinel's Forgehelm",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_helm_plate_raidpaladindragon_d_01.jpg"
+        ],
+        "204430": [
+            "Sanctum Guard's Forgewalkers",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_raidpaladindragon_d_01.jpg"
+        ],
+        "203729": [
+            "Ominous Chromatic Essence",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_misc_orb_blue.jpg"
+        ],
+        "202618": [
+            "Kagni's Scorching Talisman",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_explorer_necklace_1compassrose_color2.jpg"
+        ],
+        "202577": [
+            "Seal of the Defiant Hordes",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_plate_raidwarriordragon_d_01.jpg"
+        ],
+        "202449": [
+            "Heartfire Sentinel's Waistguard",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_plate_raidpaladindragon_d_01.jpg"
+        ],
+        "202617": [
+            "Elementium Pocket Anvil",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_blacksmithing_khazgoriananvil.jpg"
+        ],
+        "204397": [
+            "Magmorax's Fourth Collar",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_dragon_necklace_2_red.jpg"
+        ],
+        "202599": [
+            "Sarkareth's Abyssal Embrace",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_chest_plate_raiddeathknightdragon_d_01.jpg"
+        ],
+        "202582": [
+            "Manacles of Cruel Progress",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_plate_raidpaladindragon_d_01.jpg"
+        ],
+        "202559": [
+            "Infernal Shadelance",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_polearm_2h_dragonraid_d_01.jpg"
+        ],
+        "204400": [
+            "Recycled Golemskin Waistguard",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_plate_raidpaladindragon_d_01.jpg"
+        ],
+        "203714": [
+            "Ward of Faceless Ire",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_dragon_trinket_2arcanemagical_green.jpg"
+        ],
+        "202587": [
+            "Oathbreaker's Obsessive Gauntlets",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_glove_leather_raidmonkdragon_d_01.jpg"
+        ],
+        "202519": [
+            "Kinslayer's Shawl",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "202522": [
+            "Kinslayer's Tainted Spaulders",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shoulder_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "202560": [
+            "Claws of the Blazing Behemoth",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_hand_1h_dragonraid_d_01.jpg"
+        ],
+        "204399": [
+            "Oblivion's Immortal Coil",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "203996": [
+            "Igneous Flowstone",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_misc_orb_05.jpg"
+        ],
+        "202610": [
+            "Dragonfire Bomb Dispenser",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_engineering2_boxofbombs_friendly_color2.jpg"
+        ],
+        "204391": [
+            "Failed Applicant's Footpads",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_leather_raidroguedragon_d_01.jpg"
+        ],
+        "202527": [
+            "Kinslayer's Vest",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_chest_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "202566": [
+            "Rionthus's Bladed Visage",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_glaive_1h_dragonraid_d_01.jpg"
+        ],
+        "202523": [
+            "Kinslayer's Legguards",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_pant_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "202525": [
+            "Kinslayer's Bloodstained Grips",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_glove_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "202574": [
+            "Flamebound Huntsman's Footpads",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_leather_raiddruiddragon_d_01_boot.jpg"
+        ],
+        "202520": [
+            "Kinslayer's Bindings",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "202602": [
+            "Violent Gravemask",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_helm_leather_raidroguedragon_d_01.jpg"
+        ],
+        "202616": [
+            "Enduring Dreadplate",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_blacksmithing_craftedbar_bloodyalloy.jpg"
+        ],
+        "204279": [
+            "Wallclimber's Incursion Hatchet",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_axe_1h_dragonraid_d_01.jpg"
+        ],
+        "202575": [
+            "Neldris's Sinewy Scapula",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shoulder_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "202594": [
+            "Bloodstench Skinguards",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_leather_raidroguedragon_d_01.jpg"
+        ],
+        "202526": [
+            "Kinslayer's Gaiters",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "202521": [
+            "Kinslayer's Sash",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "202596": [
+            "Tassets of Blistering Twilight",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_pant_leather_raidroguedragon_d_01.jpg"
+        ],
+        "202524": [
+            "Kinslayer's Hood",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_helm_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "202586": [
+            "Warlord's Volcanic Vest",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_chest_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "204415": [
+            "Mantle of Sunless Kindling",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_leather_raiddruiddragon_d_01_shoulder.jpg"
+        ],
+        "204414": [
+            "Laboratory Assistant's Abductors",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_glove_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "204394": [
+            "Cuffs of the Savage Serpent",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_leather_raiddemonhunterdragon_d_01.jpg"
+        ],
+        "202655": [
+            "Elder's Volcanic Binding",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_leather_raidmonkdragon_d_01.jpg"
+        ],
+        "204211": [
+            "Neltharion's Call to Suffering",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_dungeonjewelry_dragon_trinket_5_green.jpg"
+        ],
+        "204392": [
+            "Treads of Fractured Realities",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_boot.jpg"
+        ],
+        "202585": [
+            "Coattails of the Rightful Heir",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_pant.jpg"
+        ],
+        "202540": [
+            "Devotion of the Furnace Seraph",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_shoulder.jpg"
+        ],
+        "202538": [
+            "Cuffs of the Furnace Seraph",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_bracer.jpg"
+        ],
+        "204393": [
+            "Clasps of the Diligent Steward",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_bracer.jpg"
+        ],
+        "204411": [
+            "Crucible Curator's Wingspan",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_shoulder.jpg"
+        ],
+        "202544": [
+            "Sabatons of the Furnace Seraph",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_boot.jpg"
+        ],
+        "202543": [
+            "Grasp of the Furnace Seraph",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_glove.jpg"
+        ],
+        "202593": [
+            "Unstable Vial Handlers",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidwarlockdragon_d_01_bracer.jpg"
+        ],
+        "202539": [
+            "Sash of the Furnace Seraph",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_belt.jpg"
+        ],
+        "202545": [
+            "Command of the Furnace Seraph",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_chest.jpg"
+        ],
+        "202570": [
+            "Lavaflow Control Rod",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mace_1h_dragonraid_d_01.jpg"
+        ],
+        "202578": [
+            "Phoenix-Plume Gloves",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidwarlockdragon_d_01_glove.jpg"
+        ],
+        "202537": [
+            "Shroud of the Furnace Seraph",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_cape.jpg"
+        ],
+        "202589": [
+            "Sash of Abandoned Hope",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidwarlockdragon_d_01_belt.jpg"
+        ],
+        "202565": [
+            "Erethos, the Empty Promise",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_staff_2h_dragonraid_d_01.jpg"
+        ],
+        "202542": [
+            "Mask of the Furnace Seraph",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_helm.jpg"
+        ],
+        "204410": [
+            "Bands of Purified Purpose",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_cloth_raidmagedragon_d_01.jpg"
+        ],
+        "202541": [
+            "Breeches of the Furnace Seraph",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidpriestdragon_d_01_pant.jpg"
+        ],
+        "204324": [
+            "Echo's Maddening Volume",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_offhand_1h_dragonraid_d_02.jpg"
+        ],
+        "202579": [
+            "Attendant's Concocting Cover",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_helm_cloth_raidmagedragon_d_01.jpg"
+        ],
+        "202615": [
+            "Vessel of Searing Shadow",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_trinket_mawraid_01_purple.jpg"
+        ],
+        "202555": [
+            "Zskarn's Autopsy Scalpel",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_knife_1h_dragonraid_d_01.jpg"
+        ],
+        "202652": [
+            "Discarded Creation's Restraint",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_buckle_cloth_raidmagedragon_d_01.jpg"
+        ],
+        "204318": [
+            "Thadrion's Erratic Arcanotrode",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_offhand_1h_dragonraid_d_01.jpg"
+        ],
+        "202603": [
+            "Sandals of Ancient Fury",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidwarlockdragon_d_01_boot.jpg"
+        ],
+        "202580": [
+            "Mystic's Scalding Frame",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidwarlockdragon_d_01_shoulder.jpg"
+        ],
+        "204319": [
+            "Bloodfire Extraction Conduit",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mace_1h_dragonraid_d_02.jpg"
+        ],
+        "202600": [
+            "Reanimator's Wicked Cassock",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cloth_raidwarlockdragon_d_01_chest.jpg"
+        ],
+        "202621": [
+            "Dreadful Corrupting Fluid",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_blacksmithing_craftedoptional_blacksmithdye.jpg"
+        ],
+        "202631": [
+            "Dreadful Ventilation Fluid",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_blacksmithing_craftedoptional_blacksmithdye_air.jpg"
+        ],
+        "202634": [
+            "Dreadful Cooling Fluid",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_blacksmithing_craftedoptional_blacksmithdye_frost.jpg"
+        ],
+        "202624": [
+            "Dreadful Mixing Fluid",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_blacksmithing_craftedoptional_blacksmithdye_earth.jpg"
+        ],
+        "202627": [
+            "Dreadful Melting Fluid",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_10_blacksmithing_craftedoptional_blacksmithdye_fire.jpg"
+        ]
+    }
+}
