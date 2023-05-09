@@ -10,14 +10,21 @@ def create_report_list_embed(reports: list, days):
 
     # Build the main body
     body = ''
-    player_set = set()
+    latest_reports = {}
     for report in reports:
         player = Player.get_player_by_id(report.player_id)
-        player_set.add(player.name)
-    
-    for p in sorted(player_set):
-        body += f'\t{p}\n'
+        date = report.report_date.date().strftime('%b %d')
+        code = report.report_link.split('/')[5]
+        if player in latest_reports:
+            if date < latest_reports[player]['date']:
+                continue
+        latest_reports[player.name] = {'date': date, 'code': code }
 
-    embed.description = f'Reports processed within the last {days} days: {len(reports)} \n\n ```Players:\n{body}```'
+    for player in latest_reports:
+        date = latest_reports[player]['date']
+        code = latest_reports[player]['code']
+        body += f' {date} \u2022 {player:12} \u2022 {code}\n'
+
+    embed.description = f'Reports processed within the last {days} days: {len(reports)} \n\n Latest report per player:```{body}```'
 
     return embed

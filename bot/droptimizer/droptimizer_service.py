@@ -10,7 +10,7 @@ from ..models.sim_report import SimReport
 from ..models.sim_item import SimItem
 from ..models.encounter import Encounter
 
-from ..apis.blizzard import Blizzard
+from ..apis.wowaudit import WowAudit
 
 class DroptimizerService:
 
@@ -74,6 +74,9 @@ class DroptimizerService:
 
                 # Add the report to the successful list
                 successful_reports.append(f'{difficulty} \u2022 {name:12} \u2022 {spec}')
+
+                # Upload the report to WowAudit
+                WowAudit.upload_droptimizer_report(report.split('/')[5])
 
             # Catch the errors
             except Exception as e:

@@ -1309,6 +1309,22 @@
         "202639": [
             "Zenith Ventilation Fluid",
             "https://render.worldofwarcraft.com/us/icons/56/inv_10_blacksmithing_craftedoptional_blacksmithdye_air.jpg"
+        ],
+        "202483": [
+            "Crest of Obsidian Secrets",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_mail_raidevokerdragon_d_01.jpg"
+        ],
+        "202490": [
+            "Greatboots of Obsidian Secrets",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_mail_raidevokerdragon_d_01.jpg"
+        ],
+        "202484": [
+            "Scalebands of Obsidian Secrets",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_mail_raidevokerdragon_d_01.jpg"
+        ],
+        "202485": [
+            "Lasso of Obsidian Secrets",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_mail_raidevokerdragon_d_01.jpg"
         ]
     }
 }

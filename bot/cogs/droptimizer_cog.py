@@ -35,6 +35,8 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         # Parse all the reports included in the message
         if message.channel.id == self.droptimizer_channel:
             reports = [x for x in message.content.split() if 'https://www.raidbots.com/simbot/report' in x]
+            if len(reports) == 0:
+                return
             success, failed = DroptimizerService.add_reports(reports)
             embed = create_successful_reports_embed(success, failed)
             await message.channel.send(embed=embed)
