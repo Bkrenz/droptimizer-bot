@@ -1,3 +1,4 @@
+import datetime
 from . import Base, intpk, player_fk, str50, session
 from .player import Player
 from sqlalchemy import String, ForeignKey, DateTime
@@ -25,8 +26,11 @@ class SimReport(Base):
         session.commit()
         return new_report
 
+
     @staticmethod
-    def get_reports():
-        stmt = select(SimReport)
-        result = session.scalars(stmt)
-        return result.all()
+    def get_reports(days = 14):
+        # Currently setup to only care about reports submitted in the last two weeks by default,
+        # though this is open to change.  
+        two_weeks_ago = datetime.datetime.now() - datetime.timedelta(days)
+        result = session.query(SimReport).filter(SimReport.report_date > two_weeks_ago).all()
+        return result
