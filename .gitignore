@@ -12,3 +12,6 @@ bot-env/
 
 # Ignore Python Caches
 __pycache__/
+
+# Ignore Temporary Data
+tmp/

@@ -2,6 +2,8 @@ import os
 import logging
 import asyncio
 
+import bot.models
+
 import discord
 from discord.ext import commands
 
@@ -27,6 +29,9 @@ async def main():
         if file.startswith("__pycache__"):
             continue
         client.load_extension(f"bot.cogs.{file[:-3]}")
+
+    # Initialize the Database Models
+    bot.models.init()
 
     # Start the Bot
     await client.start(os.getenv("DISCORD_BOT_TOKEN"))
