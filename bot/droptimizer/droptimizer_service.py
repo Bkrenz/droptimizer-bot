@@ -1,4 +1,5 @@
 import os
+import asyncio
 import logging
 import requests
 import json
@@ -15,7 +16,7 @@ from ..apis.wowaudit import WowAudit
 class DroptimizerService:
 
     @staticmethod
-    def add_reports(reports: list):
+    async def add_reports(reports: list):
         # Make sure we have reports ready
         if len(reports) == 0:
             return [], []
@@ -26,6 +27,7 @@ class DroptimizerService:
         for report in reports:
             try:
                 # Get Report 
+                report_code = report.split('/')[5]
                 with requests.Session() as s:
                     data = s.get(report + '/data.json').content.decode('utf-8')
                 data = json.loads(data)
@@ -34,7 +36,7 @@ class DroptimizerService:
                 name = data['simbot']['player']
                 spec = (data['simbot']['spec'] + ' ' + data['simbot']['charClass']).title()
                 reportType = data['simbot']['simType']
-                reportDate = datetime.datetime.now()
+                reportDate = datetime.datetime.fromtimestamp(int(data['simbot']['date']) / 1000)
                 reportTitle = data['simbot']['publicTitle'].split('\u2022')
                 difficulty = reportTitle[2].strip()
                 baseline = int(data['sim']['players'][0]['collected_data']['dps']['median'])
@@ -73,10 +75,10 @@ class DroptimizerService:
                         SimItem.update_sim_item(sim_item, value)
 
                 # Add the report to the successful list
-                successful_reports.append(f'{difficulty} \u2022 {name:12} \u2022 {spec}')
+                successful_reports.append(f'{name:12} \u2022 {report_code}')
 
                 # Upload the report to WowAudit
-                WowAudit.upload_droptimizer_report(report.split('/')[5])
+                asyncio.create_task(WowAudit.upload_droptimizer_report_async(report_code))
 
             # Catch the errors
             except Exception as e:

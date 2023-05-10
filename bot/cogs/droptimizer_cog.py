@@ -2,6 +2,7 @@ import os
 import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
+import time
 
 from ..embeds.report_list_embed import create_report_list_embed
 from ..embeds.successful_reports_embed import create_successful_reports_embed
@@ -34,10 +35,15 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         
         # Parse all the reports included in the message
         if message.channel.id == self.droptimizer_channel:
+            # Get a list of all reports
             reports = [x for x in message.content.split() if 'https://www.raidbots.com/simbot/report' in x]
             if len(reports) == 0:
                 return
-            success, failed = DroptimizerService.add_reports(reports)
+            
+            # Process the Reports
+            success, failed = await DroptimizerService.add_reports(reports)
+
+            # Create the Embed
             embed = create_successful_reports_embed(success, failed)
             await message.channel.send(embed=embed)
             await message.delete()

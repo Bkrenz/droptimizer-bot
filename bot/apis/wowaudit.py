@@ -1,12 +1,13 @@
 import os
 import requests
+import aiohttp
 
 class WowAudit:
 
     wowaudit_credentials = os.getenv('WOW_AUDIT_CREDENTIALS')
 
     @staticmethod
-    def upload_droptimizer_report(report_id):
+    async def upload_droptimizer_report_async(report_id):
         url = 'https://wowaudit.com/v1/wishlists'
         
         headers = {
@@ -21,4 +22,8 @@ class WowAudit:
             'clear_conduits': True
         }
 
-        requests.post(url, headers=headers, json=data)
+        try:
+            async with aiohttp.ClientSession() as session:
+                await session.post(url, headers=headers, json=data)
+        except Exception as e:
+            print(e + '\n' + e.with_traceback())
