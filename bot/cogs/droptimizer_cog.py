@@ -1,5 +1,6 @@
 import os
 import discord
+from discord import Embed
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 import time
@@ -12,15 +13,16 @@ from ..droptimizer.droptimizer_service import DroptimizerService
 from ..models.sim_report import SimReport
 from ..models.sim_item import SimItem
 from ..models.item import Item
+from ..models.discord.saved_channels import SavedChannel
 
 class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
     def __init__(self, bot):
         self.bot = bot
-        self.droptimizer_channel = int(os.getenv('DROPTIMIZER_CHANNEL_ID'))
 
     droptimizer = SlashCommandGroup('droptimizer', 'Droptimizer Commands')
     dropsearch = droptimizer.create_subgroup('search', 'Droptimizer Search Commands')
+    dropadmin = droptimizer.create_subgroup('admin', 'Droptimizer Administrative Commands')
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -34,7 +36,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             return
         
         # Parse all the reports included in the message
-        if message.channel.id == self.droptimizer_channel:
+        if SavedChannel.check_channel_registered(message.channel.id):
             # Get a list of all reports
             reports = [x for x in message.content.split() if 'https://www.raidbots.com/simbot/report' in x]
             if len(reports) == 0:
@@ -49,7 +51,6 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             await message.delete()
 
 
-
     @droptimizer.command(description='Get a list of players who submitted reports in the last two weeks.')
     async def reports(self, ctx: commands.Context, days: discord.Option(int) =14):
         '''
@@ -58,6 +59,16 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         reports = SimReport.get_reports(days)
         embed = create_report_list_embed(reports, days)
         await ctx.respond(embed=embed)
+
+
+    @dropadmin.command(description='Register this channel to listen for droptimizer reports from this discord.')
+    async def register(self, ctx: commands.Context):
+        guild_id = ctx.guild.id
+        channel_id = ctx.channel.id
+        SavedChannel.save_channel(guild_id, channel_id, 'Droptimizer')
+        reg_embed = Embed(title='Registered Channel')
+        reg_embed.description = 'Successfully registered this channel to watch for Droptimizer Reports for this Guild Discord.'
+        await ctx.respond(embed=reg_embed)
 
     
     @dropsearch.command(description='Get the list of players with upgrades for a specific item.')

@@ -35,9 +35,10 @@ def create_item_search_embed(item_name, difficulty):
     sim_items = sorted(sim_items, reverse=True)
 
     # Setup the Embed
+    embedColor = ItemColors.Legendary if difficulty == 'Mythic' else \
+                  ItemColors.Epic if difficulty == 'Heroic' else ItemColors.Rare
     embed = Embed(title=f'{item.name} \u2022 {difficulty}',
-                  color = ItemColors.Legendary if difficulty == 'Mythic' else
-                  ItemColors.Epic if difficulty == 'Heroic' else ItemColors.Rare)
+                  color = embedColor)
     embed.set_thumbnail(url=item.icon_url)
     embed.description = f'[{item.name}](https://www.wowhead.com/item={item.item_id}) ```'
     for sim_item in sim_items:
