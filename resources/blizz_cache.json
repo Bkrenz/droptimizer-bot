@@ -1325,6 +1325,42 @@
         "202485": [
             "Lasso of Obsidian Secrets",
             "https://render.worldofwarcraft.com/us/icons/56/inv_belt_mail_raidevokerdragon_d_01.jpg"
+        ],
+        "202558": [
+            "Calamity's Herald",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shield_1h_dragonraid_d_01.jpg"
+        ],
+        "204320": [
+            "Proctor's Tactical Cleaver",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_axe_1h_dragonraid_d_02.jpg"
+        ],
+        "202568": [
+            "Scholar's Thinking Cudgel",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_mace_1h_dragonraid_d_03.jpg"
+        ],
+        "202571": [
+            "Experiment 1, Kitewing",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_shield_1h_dragonraid_d_02.jpg"
+        ],
+        "202492": [
+            "Lurking Specter's Capelet",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_leather_raidroguedragon_d_01.jpg"
+        ],
+        "202564": [
+            "Fang of the Sundered Flame",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_knife_1h_dragonraid_d_02.jpg"
+        ],
+        "202494": [
+            "Lurking Specter's Edgeband",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_leather_raidroguedragon_d_01.jpg"
+        ],
+        "202493": [
+            "Lurking Specter's Armwraps",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_leather_raidroguedragon_d_01.jpg"
+        ],
+        "202499": [
+            "Lurking Specter's Tabi",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_leather_raidroguedragon_d_01.jpg"
         ]
     }
 }

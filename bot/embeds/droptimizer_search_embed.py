@@ -1,4 +1,5 @@
 from discord import Embed
+from . import ItemColors
 
 from ..models.player import Player
 from ..models.sim_item import SimItem
@@ -34,7 +35,9 @@ def create_item_search_embed(item_name, difficulty):
     sim_items = sorted(sim_items, reverse=True)
 
     # Setup the Embed
-    embed = Embed(title=f'{item.name} \u2022 {difficulty}')
+    embed = Embed(title=f'{item.name} \u2022 {difficulty}',
+                  color = ItemColors.Legendary if difficulty == 'Mythic' else
+                  ItemColors.Epic if difficulty == 'Heroic' else ItemColors.Rare)
     embed.set_thumbnail(url=item.icon_url)
     embed.description = f'[{item.name}](https://www.wowhead.com/item={item.item_id}) ```'
     for sim_item in sim_items:
