@@ -1,5 +1,7 @@
 from enum import Enum
 
+MIST_LOGO_URL = 'https://raw.githubusercontent.com/Bkrenz/mist-bot/main/resources/images/mist_logo_192.png'
+
 class ItemColors:
     Poor = 0x889D9D
     Common = 0xFFFFFF

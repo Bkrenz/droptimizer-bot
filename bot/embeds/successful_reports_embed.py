@@ -1,10 +1,10 @@
 from discord import Embed
-from . import ItemColors
+from . import ItemColors, MIST_LOGO_URL
 
 def create_successful_reports_embed(successful_reports: list, failed_reports: list):
     # Setup the Basics
     embed = Embed(title='Processed Reports', color=ItemColors.Common)
-    embed.set_thumbnail(url= 'https://raw.githubusercontent.com/Bkrenz/mist-bot/main/resources/images/mist_logo_192.png')
+    embed.set_thumbnail(url= MIST_LOGO_URL)
     embed.description = f'Finished processing {len(successful_reports) + len(failed_reports)} reports. \n'
 
     # Build the list of Successful Reports
