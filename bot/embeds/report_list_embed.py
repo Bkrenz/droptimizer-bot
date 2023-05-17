@@ -1,11 +1,12 @@
 from discord import Embed
 from ..models.player import Player
+from . import ItemColors
 
 MIST_LOGO_URL = 'https://raw.githubusercontent.com/Bkrenz/mist-bot/main/resources/images/mist_logo_192.png'
 
 def create_report_list_embed(reports: list, days):
     # Setup the Basic Info for the Embed
-    embed = Embed(title='Droptimizer Reports')
+    embed = Embed(title='Droptimizer Reports', color=ItemColors.Common)
     embed.set_thumbnail(url=MIST_LOGO_URL)
 
     # Build the main body

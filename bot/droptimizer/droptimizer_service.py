@@ -12,6 +12,7 @@ from ..models.sim_item import SimItem
 from ..models.encounter import Encounter
 
 from ..apis.wowaudit import WowAudit
+from ..apis.raidbots import RaidBots
 
 class DroptimizerService:
 
@@ -28,9 +29,7 @@ class DroptimizerService:
             try:
                 # Get Report 
                 report_code = report.split('/')[5]
-                with requests.Session() as s:
-                    data = s.get(report + '/data.json').content.decode('utf-8')
-                data = json.loads(data)
+                data = RaidBots.get_report_json(report_code)
 
                 # Get Report Information
                 name = data['simbot']['player']
