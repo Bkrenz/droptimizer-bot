@@ -51,7 +51,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             await message.delete()
 
 
-    @droptimizer.command(description='Get a list of players who submitted reports in the last two weeks.')
+    @dropadmin.command(description='Get a list of players who submitted reports in the last two weeks.')
     async def reports(self, ctx: commands.Context, days: discord.Option(int) =14):
         '''
         This command displays a list of all reports that have been submitted.

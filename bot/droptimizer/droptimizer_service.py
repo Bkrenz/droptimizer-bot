@@ -81,7 +81,7 @@ class DroptimizerService:
 
             # Catch the errors
             except Exception as e:
-                logging.error(f'{e}:\n + {e.with_traceback}')
+                logging.error(f'{e}')
                 failed_reports.append(report.split('/')[5])
 
         # Return
