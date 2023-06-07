@@ -25,7 +25,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
     dropadmin = droptimizer.create_subgroup('admin', 'Droptimizer Administrative Commands')
 
     @commands.Cog.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         '''
         This listener is setup to find all Droptimizer Reports submitted to the specified channel
         in the Environment Variables, label DROPTIMIZER_CHANNEL_ID. Multiple reports may be submitted
@@ -47,7 +47,8 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
             # Create the Embed
             embed = create_successful_reports_embed(success, failed)
-            await message.channel.send(embed=embed)
+            
+            await message.author.send(embed=embed)
             await message.delete()
 
 

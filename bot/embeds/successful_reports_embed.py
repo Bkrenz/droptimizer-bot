@@ -9,16 +9,23 @@ def create_successful_reports_embed(successful_reports: list, failed_reports: li
 
     # Build the list of Successful Reports
     if len(successful_reports) > 0:
-        embed.description += '\nSuccessful Reports:```'
+        embed.description += '\n**Successful Reports**:\n'
         for success in successful_reports:
-            embed.description += success + '\n'
-        embed.description += '```'
+            report_code = success['code']
+            name = success['player']
+            spec = success['spec']
+            difficulty = success['difficulty']
+            embed.description += f'\t{name} - {spec} \u2022 {difficulty} \u2022 '
+            embed.description += f'[Report Link](https://raidbots.com/simbot/report/{report_code})\n'
 
     # Build the list of Successful Reports
     if len(failed_reports) > 0:
-        embed.description += '\nFailed Reports:```'
+        embed.description += '\n**Failed Reports**:```'
         for failed in failed_reports:
             embed.description += failed + '\n'
         embed.description += '```'
+        
+    embed.set_footer(text='Mist Analytics | Issues? Contact BKrenz#4028', icon_url=MIST_LOGO_URL)
 
     return embed
+ 

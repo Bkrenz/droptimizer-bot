@@ -1365,6 +1365,30 @@
         "202557": [
             "Hellsteel Mutilator",
             "https://render.worldofwarcraft.com/us/icons/56/inv_knife_1h_dragonraid_d_01.jpg"
+        ],
+        "202569": [
+            "Djaruun, Pillar of the Elder Flame",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_polearm_2h_dragonraid_d_02.jpg"
+        ],
+        "202501": [
+            "Drape of the Vermillion Forge",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_cape_leather_raidmonkdragon_d_01.jpg"
+        ],
+        "202502": [
+            "Coils of the Vermillion Forge",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_bracer_leather_raidmonkdragon_d_01.jpg"
+        ],
+        "202508": [
+            "Footpads of the Vermillion Forge",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_boot_leather_raidmonkdragon_d_01.jpg"
+        ],
+        "202503": [
+            "Blackbelt of the Vermillion Forge",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_belt_leather_raidmonkdragon_d_01.jpg"
+        ],
+        "202563": [
+            "Obsidian Stirring Staff",
+            "https://render.worldofwarcraft.com/us/icons/56/inv_staff_2h_dragonraid_d_02.jpg"
         ]
     }
 }

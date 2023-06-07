@@ -74,7 +74,12 @@ class DroptimizerService:
                         SimItem.update_sim_item(sim_item, value)
 
                 # Add the report to the successful list
-                successful_reports.append(f'{name:12} \u2022 {report_code}')
+                report_info = {}
+                report_info['code'] = report_code
+                report_info['player'] = name
+                report_info['spec'] = spec
+                report_info['difficulty'] = difficulty
+                successful_reports.append(report_info)
 
                 # Upload the report to WowAudit
                 asyncio.create_task(WowAudit.upload_droptimizer_report_async(report_code))
