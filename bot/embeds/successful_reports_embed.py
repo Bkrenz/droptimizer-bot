@@ -1,11 +1,12 @@
 from discord import Embed
-from . import ItemColors, MIST_LOGO_URL
+from . import ItemColors, MIST_LOGO_URL, ISSUES_NOTE, FOOTER_DESC
 
 def create_successful_reports_embed(successful_reports: list, failed_reports: list):
     # Setup the Basics
     embed = Embed(title='Processed Reports', color=ItemColors.Common)
     embed.set_thumbnail(url= MIST_LOGO_URL)
     embed.description = f'Finished processing {len(successful_reports) + len(failed_reports)} reports. \n'
+    embed.set_author(name='Mist Analytics', url='https://github.com/Bkrenz/droptimizer-bot')
 
     # Build the list of Successful Reports
     if len(successful_reports) > 0:
@@ -24,8 +25,10 @@ def create_successful_reports_embed(successful_reports: list, failed_reports: li
         for failed in failed_reports:
             embed.description += failed + '\n'
         embed.description += '```'
+
+    embed.description += f'\n{ISSUES_NOTE}'
         
-    embed.set_footer(text='Mist Analytics | Issues? Contact BKrenz#4028', icon_url=MIST_LOGO_URL)
+    embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
 
     return embed
  

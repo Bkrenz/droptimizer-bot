@@ -1,6 +1,8 @@
 from enum import Enum
 
-MIST_LOGO_URL = 'https://raw.githubusercontent.com/Bkrenz/mist-bot/main/resources/images/mist_logo_192.png'
+MIST_LOGO_URL = 'https://raw.githubusercontent.com/Bkrenz/droptimizer-bot/main/resources/images/mist_logo_192.png'
+FOOTER_DESC = 'Mist Analytics'
+ISSUES_NOTE = 'Issues? Report at [Github](https://github.com/Bkrenz/droptimizer-bot)'
 
 class ItemColors:
     Poor = 0x889D9D
@@ -10,6 +12,16 @@ class ItemColors:
     Epic = 0xA335EE
     Legendary = 0xFF8000
     Heirloom = 0xE6CC80
+
+    @staticmethod
+    def get_by_difficulty(diff: str):
+        if diff == 'Mythic':
+            return ItemColors.Legendary
+        elif diff == 'Heroic':
+            return ItemColors.Epic
+        elif diff == 'Normal':
+            return ItemColors.Uncommon
+        return ItemColors.Common
 
 class ClassColors:
     DeathKnight = 0xC41E3A

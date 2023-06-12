@@ -1,11 +1,14 @@
+import datetime
 from discord import Embed
 from ..models.player import Player
-from . import ItemColors, MIST_LOGO_URL
+from . import ItemColors, MIST_LOGO_URL, FOOTER_DESC
 
 def create_report_list_embed(reports: list, days):
     # Setup the Basic Info for the Embed
     embed = Embed(title='Droptimizer Reports', color=ItemColors.Common)
+    embed.timestamp = datetime.datetime.utcnow()
     embed.set_thumbnail(url=MIST_LOGO_URL)
+    embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
 
     # Build the main body
     body = ''
@@ -24,6 +27,6 @@ def create_report_list_embed(reports: list, days):
         code = latest_reports[player]['code']
         body += f' {date} \u2022 {player:12} \u2022 {code}\n'
 
-    embed.description = f'Reports processed within the last {days} days: {len(reports)} \n\n Latest report per player:```{body}```'
+    embed.description = f'Reports processed within the last {days} days: {len(reports)} \n\n Latest Report per Player:```{body}```'
 
     return embed

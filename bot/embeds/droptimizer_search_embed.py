@@ -1,5 +1,5 @@
 from discord import Embed
-from . import ItemColors
+from . import ItemColors, FOOTER_DESC, MIST_LOGO_URL
 
 from ..models.player import Player
 from ..models.sim_item import SimItem
@@ -18,6 +18,8 @@ def create_player_search_embed(player_name, difficulty):
     # Setup the Embed
     embed = Embed(title=f'{player.name} \u2022 {player.spec} \u2022 {difficulty}')
     embed.description = 'Simulated Items: \n```'
+    embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
+
     for sim_item in items:
         item = Item.get_item_by_id(sim_item.item)
         embed.description += f'{item.name:20.20} \u2022 {sim_item.value if sim_item.value > 0 else 0:>6d}\n'
@@ -35,10 +37,8 @@ def create_item_search_embed(item_name, difficulty):
     sim_items = sorted(sim_items, reverse=True)
 
     # Setup the Embed
-    embedColor = ItemColors.Legendary if difficulty == 'Mythic' else \
-                  ItemColors.Epic if difficulty == 'Heroic' else ItemColors.Rare
-    embed = Embed(title=f'{item.name} \u2022 {difficulty}',
-                  color = embedColor)
+    embed = Embed(title=f'{item.name} \u2022 {difficulty}', color = ItemColors.get_by_difficulty(difficulty))
+    embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
     embed.set_thumbnail(url=item.icon_url)
     embed.description = f'[{item.name}](https://www.wowhead.com/item={item.item_id}) ```'
     for sim_item in sim_items:

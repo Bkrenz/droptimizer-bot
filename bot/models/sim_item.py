@@ -26,6 +26,7 @@ class SimItem(Base):
     def __lt__(self, __value: object) -> bool:
         return self.value < __value.value
 
+
     @staticmethod
     def create_sim_item(player_id, item_id, value, difficulty):
         new_sim_item = SimItem(player=player_id, item=item_id, value=value, difficulty=difficulty)
