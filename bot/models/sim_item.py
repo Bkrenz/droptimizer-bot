@@ -1,7 +1,7 @@
 import functools
 from typing import Type
 from . import Base, intpk, player_fk, item_fk, session, str50
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .player import Player
@@ -34,6 +34,16 @@ class SimItem(Base):
         session.commit()
         return new_sim_item
     
+
+    @staticmethod
+    def delete_items_for_player( player_id , difficulty):
+        query = select(SimItem).where(SimItem.player.is_(player_id)).where(SimItem.difficulty.is_(difficulty))
+        sim_items = session.scalars(query).all()
+        for sim in sim_items:
+            session.delete(sim)
+        session.commit()
+        return
+
     
     @staticmethod
     def update_sim_item(sim_item: Type['SimItem'], value):

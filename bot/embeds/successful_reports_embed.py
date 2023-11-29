@@ -1,30 +1,22 @@
 from discord import Embed
+from ..apis.raidbots import RaidBots
 from . import ItemColors, MIST_LOGO_URL, ISSUES_NOTE, FOOTER_DESC
 
-def create_successful_reports_embed(successful_reports: list, failed_reports: list):
+def create_successful_reports_embed(report_code, success, issue):
     # Setup the Basics
-    embed = Embed(title='Processed Reports', color=ItemColors.Common)
+    t = 'Processed Successfully' if success else 'Report Error'
+    embed = Embed(title=t, color=ItemColors.Common)
+
     embed.set_thumbnail(url= MIST_LOGO_URL)
-    embed.description = f'Finished processing {len(successful_reports) + len(failed_reports)} reports. \n'
-    embed.set_author(name='Mist Analytics', url='https://github.com/Bkrenz/droptimizer-bot')
+    embed.description = f'[Report Link]({RaidBots.create_report_link(report_code)}) \n'
+    embed.set_author(name='Mist Guild Tools', url='https://github.com/Bkrenz/droptimizer-bot')
 
-    # Build the list of Successful Reports
-    if len(successful_reports) > 0:
-        embed.description += '\n**Successful Reports**:\n'
-        for success in successful_reports:
-            report_code = success['code']
-            name = success['player']
-            spec = success['spec']
-            difficulty = success['difficulty']
-            embed.description += f'\t{name} - {spec} \u2022 {difficulty} \u2022 '
-            embed.description += f'[Report Link](https://raidbots.com/simbot/report/{report_code})\n'
+    embed.description += 'Finished uploading report to WowAudit.\n'
+    embed.description += 'To view the WowAudit Wishlists, follow [this link](https://wowaudit.com/us/illidan/mist/mist/wishlists/overview).\n'
 
-    # Build the list of Successful Reports
-    if len(failed_reports) > 0:
-        embed.description += '\n**Failed Reports**:```'
-        for failed in failed_reports:
-            embed.description += failed + '\n'
-        embed.description += '```'
+    if not success:
+        embed.description += '\nYour report could not be processed due to the following error: '
+        embed.description += f'```{issue}```'
 
     embed.description += f'\n{ISSUES_NOTE}'
         

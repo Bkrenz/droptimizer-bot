@@ -43,17 +43,16 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         # Parse all the reports included in the message
         if SavedChannel.check_channel_registered(message.channel.id):
             # Get a list of all reports
-            reports = [x for x in message.content.split() if 'https://www.raidbots.com/simbot/report' in x]
+            reports = [x for x in message.content.split() if 'raidbots.com/simbot/report' in x]
             if len(reports) == 0:
                 return
             
             # Process the Reports
-            success, failed = await DroptimizerService.add_reports(reports)
+            embed_list = await DroptimizerService.add_reports(reports)
 
             # Create the Embed
-            embed = create_successful_reports_embed(success, failed)
-            
-            await message.author.send(embed=embed)
+            for em in embed_list:
+                await message.author.send(embed=em)
             await message.delete()
 
 

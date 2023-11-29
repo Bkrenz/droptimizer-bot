@@ -1,3 +1,4 @@
+import json
 import os
 import requests
 import aiohttp
@@ -18,12 +19,15 @@ class WowAudit:
 
         data = {
             'report_id': report_id,
+            "configuration_name": "Single Target",
             'replace_manual_edits': True,
             'clear_conduits': True
         }
 
         try:
             async with aiohttp.ClientSession() as session:
-                await session.post(url, headers=headers, json=data)
+                result = await session.post(url, headers=headers, json=data)
+                resp = json.loads(await result.text())
+                return resp
         except Exception as e:
             print(e + '\n' + e.with_traceback())
