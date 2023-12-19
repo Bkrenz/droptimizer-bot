@@ -108,7 +108,8 @@ class AbsenceModal(discord.ui.Modal):
             
         embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
 
-        await interaction.response.send_message(embeds=[embed], view=AbsenceView())
+        # await interaction.response.send_message(embeds=[embed], view=AbsenceView())
+        await interaction.user.send(embed=embed)
 
 
 def setup(bot):
