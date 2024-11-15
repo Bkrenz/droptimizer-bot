@@ -27,15 +27,15 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         # Check if the message was from this bot, and ignore if so
         if message.author.id == self.bot.user.id:
             return
-        
+
         # Parse all the reports included in the message
         if SavedChannel.check_channel_registered(message.channel.id):
             # Get a list of all reports
             raidbots_reports = [x.split('/')[5] for x in message.content.split() if 'raidbots.com/simbot/report' in x]
-            qe_live_reports = [x.split('/')[-1] for x in message.content.split() if 'questionablyepic.com/live/upgradefinder' in x]
+            qe_live_reports = [x.split('/')[-1] for x in message.content.split() if 'questionablyepic.com/live/upgradereport' in x]
             if (len(qe_live_reports) + len(raidbots_reports)) == 0:
                 return
-            
+
             # Process the Reports
             embed_list = []
             for report in raidbots_reports:

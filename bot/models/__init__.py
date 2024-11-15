@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from typing_extensions import Annotated
 
-engine = create_engine('sqlite:///tmp/tmp.db')
+engine = create_engine('sqlite:////home/bkrenz/droptimizer-bot/tmp/tmp.db')
 session = Session(engine)
 
 str50 = Annotated[str, 50]

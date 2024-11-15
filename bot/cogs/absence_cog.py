@@ -26,18 +26,17 @@ class AbsenceCog(commands.Cog, name='Absences'):
     async def get_absences(self, ctx: commands.Context):
         absences = sorted(Absence.get_absences(), key=lambda x: x.date_begin)
         embed = Embed(title='Upcoming Absences', color=ItemColors.Common)
+        embed.description = '```'
         for absence in absences:
-            embed.add_field(name='ID', value=absence.id)
-            embed.add_field(name='Player', value=absence.player)
             b = absence.date_begin.date()
             e = absence.date_end.date()
             d = f'{b.month}/{b.day} - {e.month}/{e.day}'
-            embed.add_field(name='Dates', value=d)
+            embed.description += f'{absence.id} - {absence.player} - {d}\n'
 
         embed.set_thumbnail(url= MIST_LOGO_URL)
         embed.set_author(name='Mist Guild Tools', url='https://github.com/Bkrenz/droptimizer-bot')
-        embed.description = f'\n{ISSUES_NOTE}'
-            
+        embed.description += f'```\n{ISSUES_NOTE}'
+
         embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
 
         await ctx.respond(embed=embed)
@@ -55,7 +54,7 @@ class AbsenceCog(commands.Cog, name='Absences'):
 
         await ctx.respond(embed=embed)
 
-        
+
 
 
 
@@ -80,36 +79,43 @@ class AbsenceModal(discord.ui.Modal):
 
     async def callback(self, interaction: discord.Interaction):
         date_fmt = '%m/%d/%y'
+        submitter = interaction.user.display_name
+        user_id = interaction.user.id
         try:
             embed = discord.Embed(title='Added Absence', color=ItemColors.Common)
             embed.description = ''
             begin_date = datetime.datetime.strptime(self.children[1].value, date_fmt)
             end_date = datetime.datetime.strptime(self.children[2].value, date_fmt)
-            absence = Absence(player=self.children[0].value, 
-                            date_begin=begin_date, 
-                            date_end=end_date, 
+            absence = Absence(player=self.children[0].value,
+                            date_begin=begin_date,
+                            date_end=end_date,
                             note=self.children[3].value)
             absence.save()
 
             embed.add_field(name='ID', value=absence.id)
             embed.add_field(name='Player', value=self.children[0].value)
-            embed.add_field(name='Begin', value=begin_date.date())
-            embed.add_field(name='End', value=end_date.date())
+            embed.add_field(name='Begin', value=begin_date.date().strftime('%m/%d/%y'))
+            embed.add_field(name='End', value=end_date.date().strftime('%m/%d/%y'))
             embed.add_field(name='Note', value=self.children[3].value)
         except:
-            embed = discord.Embed(title='Error', color=ItemColors.Common)
+            embed = discord.Embed(title='Error in Absence Submission', color=ItemColors.Common)
             embed.description = ''
-            embed.description += 'Error in data entry, please try again.'
+            embed.description += 'Error in data entry, please try again. The most likely cause is wrong format of Date, please use (mm/dd/yy). For example, 09/11/01.\n```'
+            embed.description += f'Player: {self.children[0].value}\n'
+            for val in self.children:
+                embed.description += f'{val.label} - {val.value}\n'
+            embed.description += '```'
+
+        embed.description += f'Thank you for submission, {submitter} (<@{user_id}>).\n'
 
         embed.set_thumbnail(url= MIST_LOGO_URL)
         embed.set_author(name='Mist Guild Tools', url='https://github.com/Bkrenz/droptimizer-bot')
-        
+
         embed.description += f'\n\n{ISSUES_NOTE}'
-            
+
         embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
 
         await interaction.response.send_message(embeds=[embed], view=AbsenceView())
-        # await interaction.user.send(embed=embed)
 
 
 def setup(bot):
