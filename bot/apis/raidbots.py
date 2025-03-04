@@ -15,4 +15,12 @@ class RaidBots:
         with requests.Session() as s:
             data = s.get(report_link + '/data.json').content.decode('utf-8')
 
-        return json.loads(data)
+        jsondata = json.loads(jsondata)
+        player = jsondata['simbot']['player']
+        spec = f'{jsondata['simbot']['frost']}_{jsondata['simbot']['charClass']}'
+        timestamp = jsondata['timestamp']
+
+        with open(f'{player}-{spec}-{timestamp}.json', 'w') as f:
+            f.write(data)
+
+        return jsondata
