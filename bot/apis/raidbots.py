@@ -20,7 +20,7 @@ class RaidBots:
         spec = f'{jsondata['simbot']['frost']}_{jsondata['simbot']['charClass']}'
         timestamp = jsondata['timestamp']
 
-        with open(f'{player}-{spec}-{timestamp}.json', 'w') as f:
+        with open(f'reports/{player}-{spec}-{timestamp}.json', 'w') as f:
             f.write(data)
 
         return jsondata
