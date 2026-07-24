@@ -73,19 +73,35 @@ class AbsenceModal(discord.ui.Modal):
         super().__init__(*args, **kwargs)
         days = []
         self.add_item(discord.ui.InputText(label='Name'))
-        self.add_item(discord.ui.InputText(label='Begin Date (mm/dd/yy)',))
-        self.add_item(discord.ui.InputText(label='End Date (mm/dd/yy)'))
+        self.add_item(discord.ui.InputText(label='Begin Date (mm/dd/yy or mm/dd/yyyy)'))
+        self.add_item(discord.ui.InputText(label='End Date (mm/dd/yy or mm/dd/yyyy)'))
         self.add_item(discord.ui.InputText(label='Note', max_length=50))
 
     async def callback(self, interaction: discord.Interaction):
-        date_fmt = '%m/%d/%y'
+        # Accept two common formats: mm/dd/yy and mm/dd/yyyy
+        date_fmts = ['%m/%d/%y', '%m/%d/%Y']
         submitter = interaction.user.display_name
         user_id = interaction.user.id
         try:
             embed = discord.Embed(title='Added Absence', color=ItemColors.Common)
             embed.description = ''
-            begin_date = datetime.datetime.strptime(self.children[1].value, date_fmt)
-            end_date = datetime.datetime.strptime(self.children[2].value, date_fmt)
+            begin_date = None
+            end_date = None
+            begin_val = self.children[1].value
+            end_val = self.children[2].value
+            for fmt in date_fmts:
+                if begin_date is None:
+                    try:
+                        begin_date = datetime.datetime.strptime(begin_val, fmt)
+                    except:
+                        begin_date = None
+                if end_date is None:
+                    try:
+                        end_date = datetime.datetime.strptime(end_val, fmt)
+                    except:
+                        end_date = None
+            if begin_date is None or end_date is None:
+                raise ValueError('Invalid date format')
             absence = Absence(player=self.children[0].value,
                             date_begin=begin_date,
                             date_end=end_date,
@@ -94,13 +110,13 @@ class AbsenceModal(discord.ui.Modal):
 
             embed.add_field(name='ID', value=absence.id)
             embed.add_field(name='Player', value=self.children[0].value)
-            embed.add_field(name='Begin', value=begin_date.date().strftime('%m/%d/%y'))
-            embed.add_field(name='End', value=end_date.date().strftime('%m/%d/%y'))
+            embed.add_field(name='Begin', value=begin_date.date().strftime('%m/%d/%Y'))
+            embed.add_field(name='End', value=end_date.date().strftime('%m/%d/%Y'))
             embed.add_field(name='Note', value=self.children[3].value)
         except:
             embed = discord.Embed(title='Error in Absence Submission', color=ItemColors.Common)
             embed.description = ''
-            embed.description += 'Error in data entry, please try again. The most likely cause is wrong format of Date, please use (mm/dd/yy). For example, 09/11/01.\n```'
+            embed.description += 'Error in data entry, please try again. The most likely cause is wrong format of Date — use mm/dd/yy or mm/dd/yyyy. For example, 09/11/01 or 09/11/2001.\n```'
             embed.description += f'Player: {self.children[0].value}\n'
             for val in self.children:
                 embed.description += f'{val.label} - {val.value}\n'
