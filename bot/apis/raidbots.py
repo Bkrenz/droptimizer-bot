@@ -6,7 +6,7 @@ class RaidBots:
     @staticmethod
     def create_report_link(report_code):
         return f'https://www.raidbots.com/simbot/report/{report_code}'
-    
+
 
     @staticmethod
     def get_report_json(report_code):
@@ -15,4 +15,13 @@ class RaidBots:
         with requests.Session() as s:
             data = s.get(report_link + '/data.json').content.decode('utf-8')
 
-        return json.loads(data)
+        jsondata = json.loads(data)
+        player = jsondata['simbot']['player']
+        spec = jsondata['simbot']['spec']
+
+        timestamp = jsondata['timestamp']
+
+        with open(f'reports/{player}-{spec}-{timestamp}.json', 'w') as f:
+            f.write(data)
+
+        return jsondata

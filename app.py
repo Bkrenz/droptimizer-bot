@@ -25,7 +25,7 @@ async def main():
     client = commands.Bot(command_prefix=os.getenv("COMMAND_PREFIX"), intents=intents)
 
     # Load Cog Extensions
-    for file in os.listdir("bot/cogs"):
+    for file in os.listdir("/home/bkrenz/droptimizer-bot/bot/cogs"):
         if file.startswith("__pycache__"):
             continue
         client.load_extension(f"bot.cogs.{file[:-3]}")

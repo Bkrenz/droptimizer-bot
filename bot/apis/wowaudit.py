@@ -14,7 +14,7 @@ class WowAudit:
     @staticmethod
     async def upload_report(report_id):
         url = 'https://wowaudit.com/v1/wishlists'
-        
+
         headers = {
             'accept': 'application/json',
             'Authorization': WowAudit.wowaudit_credentials,
@@ -43,14 +43,15 @@ class WowAudit:
         if resp['created']:
             return RaidbotsEmbed.create(report_code, True, None)
         else:
-            return RaidbotsEmbed.create(report_code, False, resp['error:'])
-        
+            print(resp)
+            return RaidbotsEmbed.create(report_code, False, resp['base'])
+
     @staticmethod
     async def upload_qe_live_report(report_code):
         resp = await WowAudit.upload_report(report_code)
         if resp['created']:
             return QELiveEmbed.create(report_code, True, None)
         else:
-            return QELiveEmbed.create(report_code, False, resp['error:'])
+            return QELiveEmbed.create(report_code, False, resp['base'])
 
 
