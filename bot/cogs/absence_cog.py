@@ -98,7 +98,7 @@ class AbsenceModal(discord.ui.Modal):
             embed.add_field(name='End', value=end_date.date().strftime('%m/%d/%y'))
             embed.add_field(name='Note', value=self.children[3].value)
         except:
-            embed = discord.Embed(title='Error', color=ItemColors.Common)
+            embed = discord.Embed(title='Error in Absence Submission', color=ItemColors.Common)
             embed.description = ''
             embed.description += 'Error in data entry, please try again. The most likely cause is wrong format of Date, please use (mm/dd/yy). For example, 09/11/01.\n```'
             embed.description += f'Player: {self.children[0].value}\n'
