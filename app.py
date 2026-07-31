@@ -1,3 +1,4 @@
+import importlib
 import os
 import logging
 import asyncio
@@ -33,7 +34,12 @@ async def main():
         logger.info(f'client has tree: {hasattr(client, "tree")}')
         if not hasattr(client, 'tree'):
             logger.warning('Discord client does not expose command tree; creating one manually.')
-            client.tree = discord.app_commands.CommandTree(client)
+            try:
+                app_commands = importlib.import_module('discord.app_commands')
+            except ModuleNotFoundError:
+                logger.error('discord.app_commands is unavailable in this runtime. Cannot create CommandTree.')
+                return
+            client.tree = app_commands.CommandTree(client)
 
         # Sync commands to each guild for immediate availability in guilds,
         # then sync globally as a fallback.
