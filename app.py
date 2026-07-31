@@ -40,18 +40,18 @@ async def main():
                     logger.warning(f'Guild tree sync failed for {guild.id}: {e}')
             if not synced:
                 try:
-                    await client.sync_commands(guild)
-                    logger.info(f'Synced commands to guild {guild.id} via sync_commands(guild)')
+                    await client.sync_commands([guild])
+                    logger.info(f'Synced commands to guild {guild.id} via sync_commands([guild])')
                     synced = True
-                except TypeError:
-                    try:
-                        await client.sync_commands(discord.Object(id=guild.id))
-                        logger.info(f'Synced commands to guild {guild.id} via sync_commands(Object)')
-                        synced = True
-                    except Exception as e:
-                        logger.error(f'Failed to sync commands to guild {guild.id}: {e}')
                 except Exception as e:
-                    logger.error(f'Failed to sync commands to guild {guild.id}: {e}')
+                    logger.warning(f'sync_commands([guild]) failed for {guild.id}: {e}')
+                    try:
+                        await client.sync_commands(guild.id)
+                        logger.info(f'Synced commands to guild {guild.id} via sync_commands(guild.id)')
+                        synced = True
+                    except Exception as e2:
+                        logger.error(f'Failed to sync commands to guild {guild.id}: {e} / {e2}')
+                
             if not synced:
                 logger.error(f'Unable to sync commands for guild {guild.id}')
         # Also attempt a global sync if supported
