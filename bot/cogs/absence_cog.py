@@ -99,6 +99,11 @@ class AbsenceModal(discord.ui.Modal):
                         end_date = None
             if begin_date is None or end_date is None:
                 raise ValueError('Invalid date format')
+
+            today = datetime.datetime.now().date()
+            if begin_date.date() < today or end_date.date() < today:
+                raise ValueError('You cannot post an abcense in the past.')
+
             absence = Absence(player=self.children[0].value,
                             date_begin=begin_date,
                             date_end=end_date,
@@ -110,6 +115,17 @@ class AbsenceModal(discord.ui.Modal):
             embed.add_field(name='Begin', value=begin_date.date().strftime('%m/%d/%Y'))
             embed.add_field(name='End', value=end_date.date().strftime('%m/%d/%Y'))
             embed.add_field(name='Note', value=self.children[3].value)
+        except ValueError as e:
+            embed = discord.Embed(title='Error in Absence Submission', color=ItemColors.Common)
+            if str(e) == 'You cannot post an abcense in the past.':
+                embed.description = str(e)
+            else:
+                embed.description = ''
+                embed.description += 'Error in data entry, please try again. The most likely cause is wrong format of Date — use mm/dd/yy or mm/dd/yyyy. For example, 09/11/01 or 09/11/2001.\n```'
+                embed.description += f'Player: {self.children[0].value}\n'
+                for val in self.children:
+                    embed.description += f'{val.label} - {val.value}\n'
+                embed.description += '```'
         except:
             embed = discord.Embed(title='Error in Absence Submission', color=ItemColors.Common)
             embed.description = ''
