@@ -20,6 +20,7 @@ async def main():
     handler = logging.FileHandler(filename=log_path, encoding='utf-8', mode='w')
     handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
     logger.addHandler(handler)
+    logger.info(f'Starting app.py from {os.path.abspath(__file__)}')
 
     # Init the Bot
     intents = discord.Intents.all()
@@ -28,6 +29,8 @@ async def main():
     @client.event
     async def on_ready():
         logger.info(f'Bot ready: {client.user} (ID: {client.user.id})')
+        logger.info(f'discord version: {getattr(discord, "__version__", "unknown")}')
+        logger.info(f'client has tree: {hasattr(client, "tree")}')
         if not hasattr(client, 'tree'):
             logger.error('Discord client does not expose command tree. Cannot sync commands.')
             return
