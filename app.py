@@ -16,7 +16,8 @@ async def main():
     # Setup Logging
     logger = logging.getLogger('discord')
     logger.setLevel(logging.INFO)
-    handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+    log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'discord.log')
+    handler = logging.FileHandler(filename=log_path, encoding='utf-8', mode='w')
     handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
     logger.addHandler(handler)
 
@@ -26,26 +27,25 @@ async def main():
 
     @client.event
     async def on_ready():
-        # Informative log
-        print(f'Bot ready: {client.user} (ID: {client.user.id})')
+        logger.info(f'Bot ready: {client.user} (ID: {client.user.id})')
         # Attempt to sync commands to each guild for immediate availability
         for guild in list(client.guilds):
             try:
                 await client.tree.sync(guild=guild)
-                print(f'Synced commands to guild {guild.id}')
+                logger.info(f'Synced commands to guild {guild.id}')
             except Exception as e:
                 try:
                     # Some forks expose a different sync API; try fallback
                     await client.sync_commands(guild=discord.Object(id=guild.id))
-                    print(f'Synced (fallback) commands to guild {guild.id}')
+                    logger.info(f'Synced (fallback) commands to guild {guild.id}')
                 except Exception as e2:
-                    print(f'Failed to sync commands to guild {guild.id}: {e} / {e2}')
+                    logger.error(f'Failed to sync commands to guild {guild.id}: {e} / {e2}')
         # Also attempt a global sync (may be slow to propagate)
         try:
             await client.tree.sync()
-            print('Global command sync attempted')
-        except Exception:
-            pass
+            logger.info('Global command sync attempted')
+        except Exception as e:
+            logger.warning(f'Global command sync failed: {e}')
 
     # Load Cog Extensions
     for file in os.listdir("/home/bkrenz/droptimizer-bot/bot/cogs"):
