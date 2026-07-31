@@ -55,9 +55,6 @@ class AbsenceCog(commands.Cog, name='Absences'):
         await ctx.respond(embed=embed)
 
 
-
-
-
 class AbsenceView(discord.ui.View):
 
     def __init__(self):
