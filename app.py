@@ -28,45 +28,24 @@ async def main():
     @client.event
     async def on_ready():
         logger.info(f'Bot ready: {client.user} (ID: {client.user.id})')
-        # Attempt to sync commands to each guild for immediate availability
-        for guild in list(client.guilds):
-            synced = False
-            if hasattr(client, 'tree'):
-                try:
-                    await client.tree.sync(guild=guild)
-                    logger.info(f'Synced commands to guild {guild.id} via tree.sync')
-                    synced = True
-                except Exception as e:
-                    logger.warning(f'Guild tree sync failed for {guild.id}: {e}')
-            if not synced:
-                try:
-                    await client.sync_commands([guild])
-                    logger.info(f'Synced commands to guild {guild.id} via sync_commands([guild])')
-                    synced = True
-                except Exception as e:
-                    logger.warning(f'sync_commands([guild]) failed for {guild.id}: {e}')
-                    try:
-                        await client.sync_commands(guild.id)
-                        logger.info(f'Synced commands to guild {guild.id} via sync_commands(guild.id)')
-                        synced = True
-                    except Exception as e2:
-                        logger.error(f'Failed to sync commands to guild {guild.id}: {e} / {e2}')
-                
-            if not synced:
-                logger.error(f'Unable to sync commands for guild {guild.id}')
-        # Also attempt a global sync if supported
-        if hasattr(client, 'tree'):
+        if not hasattr(client, 'tree'):
+            logger.error('Discord client does not expose command tree. Cannot sync commands.')
+            return
+
+        # Sync commands to each guild for immediate availability in guilds,
+        # then sync globally as a fallback.
+        for guild in client.guilds:
             try:
-                await client.tree.sync()
-                logger.info('Global command sync attempted via tree.sync')
+                await client.tree.sync(guild=guild)
+                logger.info(f'Synced commands to guild {guild.id} via client.tree.sync')
             except Exception as e:
-                logger.warning(f'Global command sync failed: {e}')
-        else:
-            try:
-                await client.sync_commands()
-                logger.info('Global command sync attempted via sync_commands')
-            except Exception as e:
-                logger.warning(f'Global command sync failed: {e}')
+                logger.warning(f'Failed to sync commands to guild {guild.id}: {e}')
+
+        try:
+            await client.tree.sync()
+            logger.info('Global command sync attempted via client.tree.sync')
+        except Exception as e:
+            logger.warning(f'Global command sync failed: {e}')
 
     # Load Cog Extensions
     for file in os.listdir("/home/bkrenz/droptimizer-bot/bot/cogs"):
