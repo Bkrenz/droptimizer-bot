@@ -32,8 +32,8 @@ async def main():
         logger.info(f'discord version: {getattr(discord, "__version__", "unknown")}')
         logger.info(f'client has tree: {hasattr(client, "tree")}')
         if not hasattr(client, 'tree'):
-            logger.error('Discord client does not expose command tree. Cannot sync commands.')
-            return
+            logger.warning('Discord client does not expose command tree; creating one manually.')
+            client.tree = discord.app_commands.CommandTree(client)
 
         # Sync commands to each guild for immediate availability in guilds,
         # then sync globally as a fallback.
