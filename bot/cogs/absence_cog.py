@@ -1,5 +1,6 @@
 import datetime
 import os
+import json
 import discord
 from discord import Embed
 from discord.commands import SlashCommandGroup
@@ -17,6 +18,8 @@ class AbsenceCog(commands.Cog, name='Absences'):
 
     absence_group = SlashCommandGroup('absences', 'Raid Absence Commands')
     absence_admin = absence_group.create_subgroup('admin', 'Absence Admin commands.')
+
+    TRACKED_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'resources', 'tracked_players.json'))
 
     @commands.slash_command(description='Setup this channel to support Raid Absences.')
     async def setup_absences(self, ctx: commands.Context):
@@ -41,6 +44,153 @@ class AbsenceCog(commands.Cog, name='Absences'):
 
         await ctx.respond(embed=embed)
 
+    @absence_group.command(description='Calculate attendance percentage for a player since a start date.')
+    async def attendance(self, ctx: commands.Context, start: str, player: str = None):
+        """Compute attendance percentage assuming posted absences are absences and missing posts mean present.
+
+        `start` accepts mm/dd/yy or mm/dd/yyyy. Events occur on Monday, Tuesday, and Thursday.
+        If `player` is omitted, computes percentages for every player found in the database.
+        """
+        # parse start date
+        date_fmts = ['%m/%d/%y', '%m/%d/%Y']
+        start_date = None
+        for fmt in date_fmts:
+            try:
+                start_date = datetime.datetime.strptime(start, fmt).date()
+                break
+            except:
+                start_date = None
+
+        if start_date is None:
+            embed = Embed(title='Invalid Date Format', color=ItemColors.Common)
+            embed.description = 'Start date format invalid. Use mm/dd/yy or mm/dd/yyyy.'
+            await ctx.respond(embed=embed, ephemeral=True)
+            return
+
+        today = datetime.date.today()
+        if start_date > today:
+            embed = Embed(title='Invalid Start Date', color=ItemColors.Common)
+            embed.description = 'Start date is in the future.'
+            await ctx.respond(embed=embed, ephemeral=True)
+            return
+
+        # count scheduled events (Mon=0, Tue=1, Thu=3)
+        event_weekdays = {0, 1, 3}
+        total_events = 0
+        day = start_date
+        event_dates = []
+        while day <= today:
+            if day.weekday() in event_weekdays:
+                total_events += 1
+                event_dates.append(day)
+            day = day + datetime.timedelta(days=1)
+
+        if total_events == 0:
+            embed = Embed(title='No Scheduled Events', color=ItemColors.Common)
+            embed.description = 'There are no scheduled events between the given start date and today.'
+            await ctx.respond(embed=embed, ephemeral=True)
+            return
+
+        # fetch absences overlapping the range for one player or all players
+        start_dt = datetime.datetime.combine(start_date, datetime.time.min)
+        end_dt = datetime.datetime.combine(today, datetime.time.max)
+
+        players = []
+        if player is None:
+            # Priority: tracked file -> guild roles -> DB
+            try:
+                if os.path.exists(self.TRACKED_FILE):
+                    with open(self.TRACKED_FILE, 'r', encoding='utf-8') as f:
+                        players = json.load(f)
+                elif ctx.guild is not None:
+                    # Fetch members with roles 'Mist Officer', 'Raiders', 'Trials'
+                    role_names = {"Mist Officer", "Raiders", "Trials"}
+                    players = []
+                    try:
+                        members = await ctx.guild.fetch_members(limit=None).flatten()
+                    except Exception:
+                        members = ctx.guild.members
+                    for m in members:
+                        if any(r.name in role_names for r in m.roles):
+                            players.append(m.id)
+                else:
+                    players = Absence.get_all_players()
+            except Exception:
+                players = Absence.get_all_players()
+        else:
+            players = [player]
+
+        # Resolve tracked IDs or names to display names used in the Absence.player field
+        resolved = []
+        for p in players:
+            # numeric IDs stored as int or numeric strings
+            member_name = None
+            try:
+                pid = int(p)
+            except Exception:
+                pid = None
+
+            if pid is not None and ctx.guild is not None:
+                try:
+                    member = ctx.guild.get_member(pid) or await ctx.guild.fetch_member(pid)
+                    member_name = member.display_name
+                except Exception:
+                    member_name = None
+
+            if member_name is None:
+                # fall back to using the raw value (likely a display name from DB)
+                member_name = str(p)
+
+            resolved.append((p, member_name))
+
+        results = []
+        for (orig_p, player_name) in resolved:
+            absences = Absence.get_for_player_between(player_name, start_dt, end_dt)
+            absence_ranges = [(a.date_begin.date(), a.date_end.date()) for a in absences]
+
+            missed = 0
+            for ev in event_dates:
+                covered = False
+                for (b, e) in absence_ranges:
+                    if b <= ev <= e:
+                        covered = True
+                        break
+                if covered:
+                    missed += 1
+
+            present = total_events - missed
+            pct = (present / total_events) * 100
+            results.append((player_name, total_events, present, missed, pct, absence_ranges))
+
+        # build response
+        if player is None:
+            embed = Embed(title=f'Attendance Summary since {start_date.strftime("%m/%d/%Y")}', color=ItemColors.Common)
+            for (player_name, tot, pres, missed, pct, _) in results:
+                embed.add_field(name=player_name, value=f'{pres}/{tot} ({pct:.1f}%)', inline=True)
+        else:
+            player_name, tot, pres, missed, pct, absence_ranges = results[0]
+            missed_dates = []
+            for ev in event_dates:
+                for (b, e) in absence_ranges:
+                    if b <= ev <= e:
+                        missed_dates.append(ev.strftime('%m/%d/%Y'))
+                        break
+
+            embed = Embed(title=f'Attendance for {player_name}', color=ItemColors.Common)
+            embed.add_field(name='Start Date', value=start_date.strftime('%m/%d/%Y'))
+            embed.add_field(name='End Date', value=today.strftime('%m/%d/%Y'))
+            embed.add_field(name='Total Scheduled Events', value=str(tot))
+            embed.add_field(name='Present', value=f'{pres} ({pct:.1f}%)')
+            embed.add_field(name='Missed', value=str(missed))
+            if missed_dates:
+                embed.add_field(name='Missed Dates', value='\n'.join(missed_dates), inline=False)
+
+        embed.set_thumbnail(url= MIST_LOGO_URL)
+        embed.set_author(name='Mist Guild Tools', url='https://github.com/Bkrenz/droptimizer-bot')
+        embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
+
+        await ctx.respond(embed=embed)
+
     @commands.slash_command(description='Delete this absence.')
     async def delete_absence(self, ctx:commands.context, id: int):
         Absence.delete(id)
@@ -53,6 +203,194 @@ class AbsenceCog(commands.Cog, name='Absences'):
         embed.description += f'\nDeleted absence {id}.'
 
         await ctx.respond(embed=embed)
+
+    @absence_admin.command(description='Delete all absences that end before the given cutoff date. Set confirm=True to execute.')
+    @commands.has_permissions(administrator=True)
+    async def reset_attendance(self, ctx: commands.Context, cutoff: str):
+        """Administrative command to delete absences ending before `cutoff`.
+
+        `cutoff` should be in `mm/dd/yy` or `mm/dd/yyyy` format. This command will
+        present an interactive Confirm/Cancel dialog to the command invoker.
+        """
+        date_fmts = ['%m/%d/%y', '%m/%d/%Y']
+        cutoff_dt = None
+        for fmt in date_fmts:
+            try:
+                cutoff_dt = datetime.datetime.strptime(cutoff, fmt)
+                break
+            except:
+                cutoff_dt = None
+
+        if cutoff_dt is None:
+            embed = Embed(title='Invalid Date Format', color=ItemColors.Common)
+            embed.description = 'Cutoff date format invalid. Use mm/dd/yy or mm/dd/yyyy.'
+            await ctx.respond(embed=embed, ephemeral=True)
+            return
+
+        embed = Embed(title='Confirm Reset', color=ItemColors.Common)
+        embed.description = (f'About to delete absences that end before '
+                             f'{cutoff_dt.date().strftime("%m/%d/%Y")}. Click Confirm to proceed or Cancel to abort.')
+
+        view = ResetConfirmView(cutoff_dt=cutoff_dt, requester_id=ctx.author.id)
+        await ctx.respond(embed=embed, view=view, ephemeral=True)
+
+    @absence_admin.command(description='Add a player to the tracked player list.')
+    @commands.has_permissions(administrator=True)
+    async def add_user(self, ctx: commands.Context, name: str):
+        """Add a display name to the tracked players JSON file."""
+        try:
+            players = []
+            if os.path.exists(self.TRACKED_FILE):
+                with open(self.TRACKED_FILE, 'r', encoding='utf-8') as f:
+                    players = json.load(f)
+            # try to resolve a guild member to an id
+            pid = None
+            if ctx.guild is not None:
+                # try as mention or id
+                try:
+                    pid = int(name.strip('<@!>'))
+                except Exception:
+                    pid = None
+                if pid is None:
+                    # try find by display name
+                    member = discord.utils.get(ctx.guild.members, display_name=name)
+                    if member:
+                        pid = member.id
+
+            if pid is None:
+                await ctx.respond('Provide a Discord user mention, ID, or an exact display name in this guild.', ephemeral=True)
+                return
+
+            if pid in players:
+                await ctx.respond(f'<@{pid}> is already tracked.', ephemeral=True)
+                return
+            players.append(pid)
+            with open(self.TRACKED_FILE, 'w', encoding='utf-8') as f:
+                json.dump(players, f, indent=2)
+            await ctx.respond(f'Added <@{pid}> to tracked players.', ephemeral=True)
+        except Exception as e:
+            await ctx.respond(f'Error adding user: {e}', ephemeral=True)
+
+    @absence_admin.command(description='Remove a player from the tracked player list.')
+    @commands.has_permissions(administrator=True)
+    async def remove_user(self, ctx: commands.Context, name: str):
+        """Remove a display name from the tracked players JSON file."""
+        try:
+            if not os.path.exists(self.TRACKED_FILE):
+                await ctx.respond('No tracked players file exists.', ephemeral=True)
+                return
+            with open(self.TRACKED_FILE, 'r', encoding='utf-8') as f:
+                players = json.load(f)
+            # resolve provided identifier to an ID
+            pid = None
+            try:
+                pid = int(name.strip('<@!>'))
+            except Exception:
+                pid = None
+            if pid is None and ctx.guild is not None:
+                member = discord.utils.get(ctx.guild.members, display_name=name)
+                if member:
+                    pid = member.id
+
+            if pid is None:
+                await ctx.respond('Provide a Discord user mention, ID, or an exact display name in this guild.', ephemeral=True)
+                return
+
+            if pid not in players:
+                await ctx.respond(f'<@{pid}> is not in tracked players.', ephemeral=True)
+                return
+            players = [p for p in players if p != pid]
+            with open(self.TRACKED_FILE, 'w', encoding='utf-8') as f:
+                json.dump(players, f, indent=2)
+            await ctx.respond(f'Removed <@{pid}> from tracked players.', ephemeral=True)
+        except Exception as e:
+            await ctx.respond(f'Error removing user: {e}', ephemeral=True)
+
+    @absence_admin.command(description='Sync tracked players from Discord roles (Mist Officer, Raiders, Trials).')
+    @commands.has_permissions(administrator=True)
+    async def sync_users(self, ctx: commands.Context):
+        """Populate the tracked players file with members from the configured roles."""
+        if ctx.guild is None:
+            await ctx.respond('This command must be run in a guild.', ephemeral=True)
+            return
+        role_names = {"Mist Officer", "Raiders", "Trials"}
+        players = []
+        try:
+            try:
+                members = await ctx.guild.fetch_members(limit=None).flatten()
+            except Exception:
+                members = ctx.guild.members
+            for m in members:
+                if any(r.name in role_names for r in m.roles):
+                    players.append(m.id)
+            # write to file
+            os.makedirs(os.path.dirname(self.TRACKED_FILE), exist_ok=True)
+            with open(self.TRACKED_FILE, 'w', encoding='utf-8') as f:
+                json.dump(players, f, indent=2)
+            await ctx.respond(f'Synced {len(players)} users to tracked players.', ephemeral=True)
+        except Exception as e:
+            await ctx.respond(f'Error syncing users: {e}', ephemeral=True)
+
+    @absence_admin.command(description='Preview how many absences would be deleted before cutoff (no changes).')
+    @commands.has_permissions(administrator=True)
+    async def preview_reset(self, ctx: commands.Context, cutoff: str):
+        """Return the number of absences that would be deleted for a given cutoff date."""
+        date_fmts = ['%m/%d/%y', '%m/%d/%Y']
+        cutoff_dt = None
+        for fmt in date_fmts:
+            try:
+                cutoff_dt = datetime.datetime.strptime(cutoff, fmt)
+                break
+            except:
+                cutoff_dt = None
+
+        if cutoff_dt is None:
+            embed = Embed(title='Invalid Date Format', color=ItemColors.Common)
+            embed.description = 'Cutoff date format invalid. Use mm/dd/yy or mm/dd/yyyy.'
+            await ctx.respond(embed=embed, ephemeral=True)
+            return
+
+        count = Absence.count_before(cutoff_dt)
+        embed = Embed(title='Preview Reset', color=ItemColors.Common)
+        embed.description = f'{count} absence(s) would be deleted that ended before {cutoff_dt.date().strftime("%m/%d/%Y")}. '
+        await ctx.respond(embed=embed, ephemeral=True)
+
+
+class ResetConfirmView(discord.ui.View):
+    def __init__(self, cutoff_dt: datetime.datetime, requester_id: int):
+        super().__init__(timeout=120)
+        self.cutoff_dt = cutoff_dt
+        self.requester_id = requester_id
+
+    @discord.ui.button(label='Confirm Reset', style=discord.ButtonStyle.danger, custom_id='confirm-reset')
+    async def confirm(self, button, interaction: discord.Interaction):
+        # Only allow the original requester to confirm
+        if interaction.user.id != self.requester_id:
+            await interaction.response.send_message('Only the command invoker may confirm this action.', ephemeral=True)
+            return
+
+        deleted = Absence.delete_before(self.cutoff_dt)
+
+        # Disable buttons after action
+        for item in self.children:
+            item.disabled = True
+
+        embed = discord.Embed(title='Reset Complete', color=ItemColors.Common)
+        embed.description = f'Deleted {deleted} absence(s) that ended before {self.cutoff_dt.date().strftime("%m/%d/%Y")}. '
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary, custom_id='cancel-reset')
+    async def cancel(self, button, interaction: discord.Interaction):
+        if interaction.user.id != self.requester_id:
+            await interaction.response.send_message('Only the command invoker may cancel this action.', ephemeral=True)
+            return
+
+        for item in self.children:
+            item.disabled = True
+
+        embed = discord.Embed(title='Reset Cancelled', color=ItemColors.Common)
+        embed.description = 'No changes were made.'
+        await interaction.response.edit_message(embed=embed, view=self)
 
 
 class AbsenceView(discord.ui.View):
