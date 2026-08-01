@@ -18,6 +18,22 @@ class AbsenceCog(commands.Cog, name='Absences'):
         self.bot = bot
         self.bot.add_view(AbsenceView())
 
+    async def _resolve_player_display(self, ctx: commands.Context, player: str) -> str:
+        if ctx.guild is None:
+            return str(player)
+        try:
+            pid = int(player)
+        except Exception:
+            return str(player)
+
+        member = ctx.guild.get_member(pid)
+        if member is None:
+            try:
+                member = await ctx.guild.fetch_member(pid)
+            except Exception:
+                member = None
+        return member.display_name if member is not None else str(player)
+
     async def _respond_embed_or_file(self, ctx: commands.Context, embed: discord.Embed, file_text: str = None, filename: str = 'output.txt', fallback_message: str = 'Output too large for embed; attached as a file.', ephemeral: bool = False, force_file: bool = False):
         def get_invoker():
             if getattr(ctx, 'author', None) is not None:
@@ -96,7 +112,8 @@ class AbsenceCog(commands.Cog, name='Absences'):
             b = absence.date_begin.date()
             e = absence.date_end.date()
             d = f'{b.month}/{b.day} - {e.month}/{e.day}'
-            embed.description += f'{absence.id} - {absence.player} - {d}\n'
+            display_name = await self._resolve_player_display(ctx, absence.player)
+            embed.description += f'{absence.id} - {display_name} - {d}\n'
 
         embed.set_thumbnail(url= MIST_LOGO_URL)
         embed.set_author(name='Mist Guild Tools', url='https://github.com/Bkrenz/droptimizer-bot')
@@ -186,6 +203,7 @@ class AbsenceCog(commands.Cog, name='Absences'):
         resolved = []
         for p in players:
             # numeric IDs stored as int or numeric strings
+            player_keys = [str(p)]
             member_name = None
             try:
                 pid = int(p)
@@ -195,19 +213,21 @@ class AbsenceCog(commands.Cog, name='Absences'):
             if pid is not None and ctx.guild is not None:
                 try:
                     member = ctx.guild.get_member(pid) or await ctx.guild.fetch_member(pid)
-                    member_name = member.display_name
+                    if member is not None:
+                        member_name = member.display_name
+                        player_keys = [str(pid), member.display_name]
                 except Exception:
                     member_name = None
 
             if member_name is None:
-                # fall back to using the raw value (likely a display name from DB)
+                # fall back to using the raw value (likely a display name from old DB entries)
                 member_name = str(p)
 
-            resolved.append((p, member_name))
+            resolved.append((player_keys, member_name))
 
         results = []
         for (orig_p, player_name) in resolved:
-            absences = Absence.get_for_player_between(player_name, start_dt, end_dt)
+            absences = Absence.get_for_player_between(orig_p, start_dt, end_dt)
             absence_ranges = [(a.date_begin.date(), a.date_end.date()) for a in absences]
 
             missed = 0
@@ -509,14 +529,11 @@ class AbsenceView(discord.ui.View):
 
     @discord.ui.button(label='Add Absence', style=discord.ButtonStyle.primary, custom_id='button-add-absence')
     async def button_callback(self, button, interaction: discord.Interaction):
-        user = interaction.user
         await interaction.response.send_modal(AbsenceModal(title='Add Absence'))
 
 class AbsenceModal(discord.ui.Modal):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        days = []
-        self.add_item(discord.ui.InputText(label='Name'))
         self.add_item(discord.ui.InputText(label='Begin Date (mm/dd/yy or mm/dd/yyyy)'))
         self.add_item(discord.ui.InputText(label='End Date (mm/dd/yy or mm/dd/yyyy)'))
         self.add_item(discord.ui.InputText(label='Note', max_length=50))
@@ -531,8 +548,8 @@ class AbsenceModal(discord.ui.Modal):
             embed.description = ''
             begin_date = None
             end_date = None
-            begin_val = self.children[1].value
-            end_val = self.children[2].value
+            begin_val = self.children[0].value
+            end_val = self.children[1].value
             for fmt in date_fmts:
                 if begin_date is None:
                     try:
@@ -551,17 +568,19 @@ class AbsenceModal(discord.ui.Modal):
             if begin_date.date() < today or end_date.date() < today:
                 raise ValueError('You cannot post an abcense in the past.')
 
-            absence = Absence(player=self.children[0].value,
+            # Always store the actual Discord user ID for the submitting user.
+            player_id = str(interaction.user.id)
+            absence = Absence(player=player_id,
                             date_begin=begin_date,
                             date_end=end_date,
-                            note=self.children[3].value)
+                            note=self.children[2].value)
             absence.save()
 
             embed.add_field(name='ID', value=absence.id)
-            embed.add_field(name='Player', value=self.children[0].value)
+            embed.add_field(name='Player', value=interaction.user.display_name)
             embed.add_field(name='Begin', value=begin_date.date().strftime('%m/%d/%Y'))
             embed.add_field(name='End', value=end_date.date().strftime('%m/%d/%Y'))
-            embed.add_field(name='Note', value=self.children[3].value)
+            embed.add_field(name='Note', value=self.children[2].value)
         except ValueError as e:
             embed = discord.Embed(title='Error in Absence Submission', color=ItemColors.Common)
             if str(e) == 'You cannot post an abcense in the past.':
@@ -569,7 +588,7 @@ class AbsenceModal(discord.ui.Modal):
             else:
                 embed.description = ''
                 embed.description += 'Error in data entry, please try again. The most likely cause is wrong format of Date — use mm/dd/yy or mm/dd/yyyy. For example, 09/11/01 or 09/11/2001.\n```'
-                embed.description += f'Player: {self.children[0].value}\n'
+                embed.description += f'Player: {submitter}\n'
                 for val in self.children:
                     embed.description += f'{val.label} - {val.value}\n'
                 embed.description += '```'
@@ -577,7 +596,7 @@ class AbsenceModal(discord.ui.Modal):
             embed = discord.Embed(title='Error in Absence Submission', color=ItemColors.Common)
             embed.description = ''
             embed.description += 'Error in data entry, please try again. The most likely cause is wrong format of Date — use mm/dd/yy or mm/dd/yyyy. For example, 09/11/01 or 09/11/2001.\n```'
-            embed.description += f'Player: {self.children[0].value}\n'
+            embed.description += f'Player: {submitter}\n'
             for val in self.children:
                 embed.description += f'{val.label} - {val.value}\n'
             embed.description += '```'

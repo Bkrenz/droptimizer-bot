@@ -62,14 +62,17 @@ class Absence(Base):
         return count
 
     @staticmethod
-    def get_for_player_between(player: str, start_dt: datetime.datetime, end_dt: datetime.datetime) -> list:
-        """Return absences for `player` that overlap the [start_dt, end_dt] range."""
-        result = session.query(Absence).filter(
-            Absence.player == player,
+    def get_for_player_between(player: str | list[str], start_dt: datetime.datetime, end_dt: datetime.datetime) -> list:
+        """Return absences for `player` or players that overlap the [start_dt, end_dt] range."""
+        query = session.query(Absence).filter(
             Absence.date_end >= start_dt,
             Absence.date_begin <= end_dt
-        ).all()
-        return result
+        )
+        if isinstance(player, list):
+            query = query.filter(Absence.player.in_(player))
+        else:
+            query = query.filter(Absence.player == player)
+        return query.all()
 
     @staticmethod
     def get_all_players() -> list:
