@@ -1,4 +1,6 @@
 import datetime
+import io
+import logging
 import os
 import json
 import discord
@@ -15,6 +17,17 @@ class AbsenceCog(commands.Cog, name='Absences'):
     def __init__(self, bot):
         self.bot = bot
         self.bot.add_view(AbsenceView())
+
+    async def _respond_embed_or_file(self, ctx: commands.Context, embed: discord.Embed, file_text: str = None, filename: str = 'output.txt', fallback_message: str = 'Output too large for embed; attached as a file.', ephemeral: bool = False):
+        try:
+            await ctx.respond(embed=embed, ephemeral=ephemeral)
+        except discord.HTTPException as e:
+            if file_text is None:
+                raise
+            logger = logging.getLogger('discord')
+            logger.warning(f'Embed response failed with HTTPException, sending file fallback: {e}')
+            file = discord.File(io.BytesIO(file_text.encode('utf-8')), filename=filename)
+            await ctx.respond(content=fallback_message, file=file, ephemeral=ephemeral)
 
     absence_group = SlashCommandGroup('absences', 'Raid Absence Commands')
     absence_admin = absence_group.create_subgroup('admin', 'Absence Admin commands.')
@@ -163,10 +176,28 @@ class AbsenceCog(commands.Cog, name='Absences'):
             results.append((player_name, total_events, present, missed, pct, absence_ranges))
 
         # build response
+        file_text = None
         if player is None:
+            if len(results) > 25:
+                file_text = 'Attendance Summary since ' + start_date.strftime('%m/%d/%Y') + '\n'
+                for (player_name, tot, pres, missed, pct, _) in results:
+                    file_text += f'{player_name}: {pres}/{tot} ({pct:.1f}%)\n'
+
+                embed = Embed(title=f'Attendance Summary since {start_date.strftime("%m/%d/%Y")}', color=ItemColors.Common)
+                embed.description = 'Too many players to display in an embed. See attached file.'
+                await self._respond_embed_or_file(
+                    ctx,
+                    embed,
+                    file_text=file_text,
+                    filename='attendance_summary.txt'
+                )
+                return
+
             embed = Embed(title=f'Attendance Summary since {start_date.strftime("%m/%d/%Y")}', color=ItemColors.Common)
+            file_text = 'Attendance Summary since ' + start_date.strftime('%m/%d/%Y') + '\n'
             for (player_name, tot, pres, missed, pct, _) in results:
                 embed.add_field(name=player_name, value=f'{pres}/{tot} ({pct:.1f}%)', inline=True)
+                file_text += f'{player_name}: {pres}/{tot} ({pct:.1f}%)\n'
         else:
             player_name, tot, pres, missed, pct, absence_ranges = results[0]
             missed_dates = []
@@ -183,13 +214,41 @@ class AbsenceCog(commands.Cog, name='Absences'):
             embed.add_field(name='Present', value=f'{pres} ({pct:.1f}%)')
             embed.add_field(name='Missed', value=str(missed))
             if missed_dates:
-                embed.add_field(name='Missed Dates', value='\n'.join(missed_dates), inline=False)
+                missed_text = '\n'.join(missed_dates)
+                if len(missed_text) > 1024:
+                    file_text = 'Missed Dates for ' + player_name + ' since ' + start_date.strftime('%m/%d/%Y') + '\n'
+                    file_text += missed_text
+                    embed.description = 'Missed dates are too large for an embed. See attached file.'
+                    await self._respond_embed_or_file(
+                        ctx,
+                        embed,
+                        file_text=file_text,
+                        filename='attendance_missed_dates.txt'
+                    )
+                    return
+                embed.add_field(name='Missed Dates', value=missed_text, inline=False)
+
+            file_text = (
+                f'Attendance for {player_name}\n'
+                f'Start Date: {start_date.strftime("%m/%d/%Y")}\n'
+                f'End Date: {today.strftime("%m/%d/%Y")}\n'
+                f'Total Scheduled Events: {tot}\n'
+                f'Present: {pres} ({pct:.1f}%)\n'
+                f'Missed: {missed}\n'
+            )
+            if missed_dates:
+                file_text += '\nMissed Dates:\n' + missed_text
 
         embed.set_thumbnail(url= MIST_LOGO_URL)
         embed.set_author(name='Mist Guild Tools', url='https://github.com/Bkrenz/droptimizer-bot')
         embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
 
-        await ctx.respond(embed=embed)
+        await self._respond_embed_or_file(
+            ctx,
+            embed,
+            file_text=file_text,
+            filename='attendance.txt'
+        )
 
     @commands.slash_command(description='Delete this absence.')
     async def delete_absence(self, ctx:commands.context, id: int):
