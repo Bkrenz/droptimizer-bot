@@ -18,30 +18,65 @@ class AbsenceCog(commands.Cog, name='Absences'):
         self.bot = bot
         self.bot.add_view(AbsenceView())
 
-    async def _respond_embed_or_file(self, ctx: commands.Context, embed: discord.Embed, file_text: str = None, filename: str = 'output.txt', fallback_message: str = 'Output too large for embed; attached as a file.', ephemeral: bool = False):
+    async def _respond_embed_or_file(self, ctx: commands.Context, embed: discord.Embed, file_text: str = None, filename: str = 'output.txt', fallback_message: str = 'Output too large for embed; attached as a file.', ephemeral: bool = False, force_file: bool = False):
+        def get_invoker():
+            if getattr(ctx, 'author', None) is not None:
+                return ctx.author
+            if getattr(ctx, 'user', None) is not None:
+                return ctx.user
+            interaction = getattr(ctx, 'interaction', None)
+            if interaction is not None:
+                return getattr(interaction, 'user', None)
+            return None
+
+        async def send_file(channel_or_user, text, name):
+            return await channel_or_user.send(content=fallback_message, file=discord.File(io.BytesIO(text.encode('utf-8')), filename=name))
+
+        if force_file:
+            if file_text is None:
+                raise ValueError('force_file requires file_text')
+            try:
+                await ctx.respond(content=fallback_message, file=discord.File(io.BytesIO(file_text.encode('utf-8')), filename=filename), ephemeral=ephemeral)
+                return
+            except discord.HTTPException as file_error:
+                logger = logging.getLogger('discord')
+                logger.warning(f'File response failed in channel; attempting DM fallback: {file_error}')
+                user = get_invoker()
+                if user is None:
+                    raise
+                try:
+                    await send_file(user, file_text, filename)
+                    await ctx.respond(content='The output was too large for this channel, so I sent it to your DMs.', ephemeral=True)
+                    return
+                except discord.HTTPException as dm_error:
+                    logger.error(f'Failed to send file fallback via DM: {dm_error}')
+                    await ctx.respond(content='Unable to send fallback file in channel or DM.', ephemeral=True)
+                    return
+
         try:
             await ctx.respond(embed=embed, ephemeral=ephemeral)
+            return
         except discord.HTTPException as e:
             if file_text is None:
                 raise
             logger = logging.getLogger('discord')
             logger.warning(f'Embed response failed with HTTPException, sending file fallback: {e}')
-            file = discord.File(io.BytesIO(file_text.encode('utf-8')), filename=filename)
             try:
-                await ctx.respond(content=fallback_message, file=file, ephemeral=ephemeral)
+                await ctx.respond(content=fallback_message, file=discord.File(io.BytesIO(file_text.encode('utf-8')), filename=filename), ephemeral=ephemeral)
                 return
             except discord.HTTPException as file_error:
                 logger.warning(f'File response failed in channel; attempting DM fallback: {file_error}')
-                if ctx.author is None:
+                user = get_invoker()
+                if user is None:
                     raise
-
-                user = ctx.author
                 try:
-                    await user.send(content=fallback_message, file=file)
+                    await send_file(user, file_text, filename)
                     await ctx.respond(content='The output was too large for this channel, so I sent it to your DMs.', ephemeral=True)
+                    return
                 except discord.HTTPException as dm_error:
                     logger.error(f'Failed to send file fallback via DM: {dm_error}')
-                    raise
+                    await ctx.respond(content='Unable to send fallback file in channel or DM.', ephemeral=True)
+                    return
 
     absence_group = SlashCommandGroup('absences', 'Raid Absence Commands')
     absence_admin = absence_group.create_subgroup('admin', 'Absence Admin commands.')
@@ -203,7 +238,8 @@ class AbsenceCog(commands.Cog, name='Absences'):
                     ctx,
                     embed,
                     file_text=file_text,
-                    filename='attendance_summary.txt'
+                    filename='attendance_summary.txt',
+                    force_file=True
                 )
                 return
 
