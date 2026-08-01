@@ -75,7 +75,7 @@ class AbsenceCog(commands.Cog, name='Absences'):
             note_text = ''
             if absence.note:
                 note_lower = absence.note.lower()
-                if 'late' in note_lower and 'minutes' in note_lower:
+                if any(keyword in note_lower for keyword in ('late', 'minutes', 'min', 'mins', 'minute', 'hour', 'hours')):
                     snippet = absence.note.strip()
                     if len(snippet) > 60:
                         snippet = snippet[:57].rstrip() + '...'
