@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import io
 import logging
@@ -70,7 +71,17 @@ class AbsenceCog(commands.Cog, name='Absences'):
             e = absence.date_end.date()
             d = f'{b.month}/{b.day} - {e.month}/{e.day}'
             display_name = await self._resolve_player_display(guild, absence.player)
-            embed.description += f'{absence.id} - {display_name} - {d}\n'
+
+            note_text = ''
+            if absence.note:
+                note_lower = absence.note.lower()
+                if 'late' in note_lower and 'minutes' in note_lower:
+                    snippet = absence.note.strip()
+                    if len(snippet) > 60:
+                        snippet = snippet[:57].rstrip() + '...'
+                    note_text = f' - {snippet}'
+
+            embed.description += f'{absence.id} - {display_name} - {d}{note_text}\n'
 
         embed.set_thumbnail(url=MIST_LOGO_URL)
         embed.set_author(name='Mist Guild Tools', url='https://github.com/Bkrenz/droptimizer-bot')
@@ -390,7 +401,21 @@ class AbsenceCog(commands.Cog, name='Absences'):
         embed.description = f'\n{ISSUES_NOTE}'
         embed.description += f'\nDeleted absence {id}.'
 
-        await ctx.respond(embed=embed)
+        response = await ctx.respond(embed=embed)
+        try:
+            message = None
+            if isinstance(response, discord.Message):
+                message = response
+            else:
+                interaction = getattr(ctx, 'interaction', None)
+                if interaction is not None:
+                    message = await interaction.original_message()
+
+            if message is not None:
+                await asyncio.sleep(8)
+                await message.delete()
+        except Exception:
+            pass
 
     @absence_admin.command(description='Delete all absences that end before the given cutoff date. Set confirm=True to execute.')
     @commands.has_permissions(administrator=True)
