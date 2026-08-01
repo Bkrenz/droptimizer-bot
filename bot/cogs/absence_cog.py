@@ -270,26 +270,17 @@ class AbsenceCog(commands.Cog, name='Absences'):
         # Resolve tracked IDs or names to display names used in the Absence.player field
         resolved = []
         for p in players:
-            # numeric IDs stored as int or numeric strings
-            player_keys = [str(p)]
-            member_name = None
-            try:
-                pid = int(p)
-            except Exception:
-                pid = None
+            player_value = str(p)
+            player_keys = [player_value]
+            member_name = await self._resolve_player_display(ctx.guild, player_value)
 
-            if pid is not None and ctx.guild is not None:
+            if player_value.isdigit() and ctx.guild is not None:
                 try:
-                    member = ctx.guild.get_member(pid) or await ctx.guild.fetch_member(pid)
+                    member = ctx.guild.get_member(int(player_value)) or await ctx.guild.fetch_member(int(player_value))
                     if member is not None:
-                        member_name = member.display_name
-                        player_keys = [str(pid), member.display_name]
+                        player_keys = [player_value, member.display_name]
                 except Exception:
-                    member_name = None
-
-            if member_name is None:
-                # fall back to using the raw value (likely a display name from old DB entries)
-                member_name = str(p)
+                    pass
 
             resolved.append((player_keys, member_name))
 
