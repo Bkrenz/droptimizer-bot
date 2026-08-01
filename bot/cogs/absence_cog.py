@@ -27,7 +27,21 @@ class AbsenceCog(commands.Cog, name='Absences'):
             logger = logging.getLogger('discord')
             logger.warning(f'Embed response failed with HTTPException, sending file fallback: {e}')
             file = discord.File(io.BytesIO(file_text.encode('utf-8')), filename=filename)
-            await ctx.respond(content=fallback_message, file=file, ephemeral=ephemeral)
+            try:
+                await ctx.respond(content=fallback_message, file=file, ephemeral=ephemeral)
+                return
+            except discord.HTTPException as file_error:
+                logger.warning(f'File response failed in channel; attempting DM fallback: {file_error}')
+                if ctx.author is None:
+                    raise
+
+                user = ctx.author
+                try:
+                    await user.send(content=fallback_message, file=file)
+                    await ctx.respond(content='The output was too large for this channel, so I sent it to your DMs.', ephemeral=True)
+                except discord.HTTPException as dm_error:
+                    logger.error(f'Failed to send file fallback via DM: {dm_error}')
+                    raise
 
     absence_group = SlashCommandGroup('absences', 'Raid Absence Commands')
     absence_admin = absence_group.create_subgroup('admin', 'Absence Admin commands.')
