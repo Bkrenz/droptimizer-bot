@@ -17,22 +17,83 @@ class AbsenceCog(commands.Cog, name='Absences'):
     def __init__(self, bot):
         self.bot = bot
         self.bot.add_view(AbsenceView())
+        self.live_absence_messages = {}
 
-    async def _resolve_player_display(self, ctx: commands.Context, player: str) -> str:
-        if ctx.guild is None:
+    async def _resolve_player_display(self, guild: discord.Guild | None, player: str) -> str:
+        if guild is None:
             return str(player)
+
+        # Prefer ID-based resolution when the stored value is a Discord user ID.
         try:
             pid = int(player)
         except Exception:
-            return str(player)
+            pid = None
 
-        member = ctx.guild.get_member(pid)
-        if member is None:
+        member = None
+        if pid is not None:
+            member = guild.get_member(pid)
+            if member is None:
+                try:
+                    member = await guild.fetch_member(pid)
+                except Exception:
+                    member = None
+
+        if member is not None:
+            return member.display_name
+
+        # Fall back to exact display name matching for legacy string entries.
+        try:
+            member = discord.utils.get(guild.members, display_name=player)
+            if member is not None:
+                return member.display_name
+        except Exception:
+            pass
+
+        return str(player)
+
+    async def _build_live_absences_embed(self, guild: discord.Guild | None) -> discord.Embed:
+        today = datetime.date.today()
+        end_date = today + datetime.timedelta(days=30)
+        absences = [
+            a for a in sorted(Absence.get_absences(), key=lambda x: x.date_begin)
+            if a.date_end.date() >= today and a.date_begin.date() <= end_date
+        ]
+
+        embed = Embed(title=f'Upcoming Absences ({today.strftime("%m/%d/%Y")} - {end_date.strftime("%m/%d/%Y")})', color=ItemColors.Common)
+        if not absences:
+            embed.description = 'No absences in the next 30 days.'
+            return embed
+
+        embed.description = '```'
+        for absence in absences:
+            b = absence.date_begin.date()
+            e = absence.date_end.date()
+            d = f'{b.month}/{b.day} - {e.month}/{e.day}'
+            display_name = await self._resolve_player_display(guild, absence.player)
+            embed.description += f'{absence.id} - {display_name} - {d}\n'
+
+        embed.set_thumbnail(url=MIST_LOGO_URL)
+        embed.set_author(name='Mist Guild Tools', url='https://github.com/Bkrenz/droptimizer-bot')
+        embed.description += f'```\n{ISSUES_NOTE}'
+        embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
+        return embed
+
+    async def _refresh_live_absences(self):
+        if not self.live_absence_messages:
+            return
+        for channel_id, old_message in list(self.live_absence_messages.items()):
+            channel = old_message.channel
             try:
-                member = await ctx.guild.fetch_member(pid)
+                await old_message.delete()
             except Exception:
-                member = None
-        return member.display_name if member is not None else str(player)
+                pass
+
+            try:
+                embed = await self._build_live_absences_embed(channel.guild if hasattr(channel, 'guild') else None)
+                message = await channel.send(embed=embed)
+                self.live_absence_messages[channel_id] = message
+            except Exception:
+                self.live_absence_messages.pop(channel_id, None)
 
     async def _respond_embed_or_file(self, ctx: commands.Context, embed: discord.Embed, file_text: str = None, filename: str = 'output.txt', fallback_message: str = 'Output too large for embed; attached as a file.', ephemeral: bool = False, force_file: bool = False):
         def get_invoker():
@@ -105,23 +166,30 @@ class AbsenceCog(commands.Cog, name='Absences'):
 
     @commands.slash_command(description='Get all registered absences.')
     async def get_absences(self, ctx: commands.Context):
-        absences = sorted(Absence.get_absences(), key=lambda x: x.date_begin)
-        embed = Embed(title='Upcoming Absences', color=ItemColors.Common)
-        embed.description = '```'
-        for absence in absences:
-            b = absence.date_begin.date()
-            e = absence.date_end.date()
-            d = f'{b.month}/{b.day} - {e.month}/{e.day}'
-            display_name = await self._resolve_player_display(ctx, absence.player)
-            embed.description += f'{absence.id} - {display_name} - {d}\n'
+        embed = await self._build_live_absences_embed(ctx.guild)
 
-        embed.set_thumbnail(url= MIST_LOGO_URL)
-        embed.set_author(name='Mist Guild Tools', url='https://github.com/Bkrenz/droptimizer-bot')
-        embed.description += f'```\n{ISSUES_NOTE}'
+        # If this channel already has a live absences message, replace it.
+        existing = self.live_absence_messages.get(ctx.channel.id)
+        if existing is not None:
+            try:
+                await existing.delete()
+            except Exception:
+                pass
 
-        embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
+        response = await ctx.respond(embed=embed)
+        message = None
+        if isinstance(response, discord.Message):
+            message = response
+        else:
+            interaction = getattr(ctx, 'interaction', None)
+            if interaction is not None:
+                try:
+                    message = await interaction.original_message()
+                except Exception:
+                    message = None
 
-        await ctx.respond(embed=embed)
+        if message is not None:
+            self.live_absence_messages[ctx.channel.id] = message
 
     @absence_group.command(description='Calculate attendance percentage for a player since a start date.')
     async def attendance(self, ctx: commands.Context, start: str, player: str = None):
@@ -323,12 +391,12 @@ class AbsenceCog(commands.Cog, name='Absences'):
     @commands.slash_command(description='Delete this absence.')
     async def delete_absence(self, ctx:commands.context, id: int):
         Absence.delete(id)
-        embed = Embed(title='Deleted Absence', color=ItemColors.Common)
+        await self._refresh_live_absences()
 
+        embed = Embed(title='Deleted Absence', color=ItemColors.Common)
         embed.set_thumbnail(url= MIST_LOGO_URL)
         embed.set_author(name='Mist Guild Tools', url='https://github.com/Bkrenz/droptimizer-bot')
         embed.description = f'\n{ISSUES_NOTE}'
-
         embed.description += f'\nDeleted absence {id}.'
 
         await ctx.respond(embed=embed)
@@ -360,7 +428,7 @@ class AbsenceCog(commands.Cog, name='Absences'):
         embed.description = (f'About to delete absences that end before '
                              f'{cutoff_dt.date().strftime("%m/%d/%Y")}. Click Confirm to proceed or Cancel to abort.')
 
-        view = ResetConfirmView(cutoff_dt=cutoff_dt, requester_id=ctx.author.id)
+        view = ResetConfirmView(cutoff_dt=cutoff_dt, requester_id=ctx.author.id, cog=self)
         await ctx.respond(embed=embed, view=view, ephemeral=True)
 
     @absence_admin.command(description='Add a player to the tracked player list.')
@@ -486,10 +554,11 @@ class AbsenceCog(commands.Cog, name='Absences'):
 
 
 class ResetConfirmView(discord.ui.View):
-    def __init__(self, cutoff_dt: datetime.datetime, requester_id: int):
+    def __init__(self, cutoff_dt: datetime.datetime, requester_id: int, cog=None):
         super().__init__(timeout=120)
         self.cutoff_dt = cutoff_dt
         self.requester_id = requester_id
+        self.cog = cog
 
     @discord.ui.button(label='Confirm Reset', style=discord.ButtonStyle.danger, custom_id='confirm-reset')
     async def confirm(self, button, interaction: discord.Interaction):
@@ -499,6 +568,8 @@ class ResetConfirmView(discord.ui.View):
             return
 
         deleted = Absence.delete_before(self.cutoff_dt)
+        if self.cog is not None and hasattr(self.cog, '_refresh_live_absences'):
+            await self.cog._refresh_live_absences()
 
         # Disable buttons after action
         for item in self.children:
@@ -581,6 +652,10 @@ class AbsenceModal(discord.ui.Modal):
             embed.add_field(name='Begin', value=begin_date.date().strftime('%m/%d/%Y'))
             embed.add_field(name='End', value=end_date.date().strftime('%m/%d/%Y'))
             embed.add_field(name='Note', value=self.children[2].value)
+
+            cog = interaction.client.get_cog('Absences')
+            if cog is not None and hasattr(cog, '_refresh_live_absences'):
+                await cog._refresh_live_absences()
         except ValueError as e:
             embed = discord.Embed(title='Error in Absence Submission', color=ItemColors.Common)
             if str(e) == 'You cannot post an abcense in the past.':
@@ -610,7 +685,7 @@ class AbsenceModal(discord.ui.Modal):
 
         embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
 
-        await interaction.response.send_message(embeds=[embed], view=AbsenceView())
+        await interaction.response.send_message(embeds=[embed], ephemeral=True)
 
 
 def setup(bot):
