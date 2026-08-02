@@ -142,14 +142,14 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
                 break
 
         trial_post_name = f'{member.display_name} • Trial'
-        trial_post = await trial_feedback_forum.create_post(
+        trial_post = await trial_feedback_forum.create_thread(
             name=trial_post_name,
             content=(f'Start date: {parsed_start.strftime("%m/%d/%Y")}\n'
                      f'Warcraft Logs: {warcraft_logs_url or "Not found from application."}')
         )
 
         team_post_name = f'{member.display_name} • Team Feedback'
-        team_post = await team_feedback_forum.create_post(
+        team_post = await team_feedback_forum.create_thread(
             name=team_post_name,
             content=('This is a place for us and you to express our concerns or triumphs regarding performance. '
                      'Please take it upon yourself to get ahead of the hammer if you have a bad night and highlight what was wrong and how you are going to fix it.')

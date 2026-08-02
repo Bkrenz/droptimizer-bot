@@ -195,7 +195,7 @@ class AbsenceCog(commands.Cog, name='Absences'):
             interaction = getattr(ctx, 'interaction', None)
             if interaction is not None:
                 try:
-                    message = await interaction.original_message()
+                    message = await interaction.original_response()
                 except Exception:
                     message = None
 
@@ -409,7 +409,7 @@ class AbsenceCog(commands.Cog, name='Absences'):
             else:
                 interaction = getattr(ctx, 'interaction', None)
                 if interaction is not None:
-                    message = await interaction.original_message()
+                    message = await interaction.original_response()
 
             if message is not None:
                 await asyncio.sleep(8)
