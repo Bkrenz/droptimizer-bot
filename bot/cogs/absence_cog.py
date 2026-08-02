@@ -19,6 +19,12 @@ class AbsenceCog(commands.Cog, name='Absences'):
         self.bot = bot
         self.bot.add_view(AbsenceView())
         self.live_absence_messages = {}
+        # Start a background task to refresh live absence messages once per day (UTC midnight)
+        try:
+            self._daily_refresh_task = self.bot.loop.create_task(self._daily_refresh_loop())
+        except Exception:
+            # If task creation fails during import or test runs, don't crash the cog
+            self._daily_refresh_task = None
 
     async def _resolve_player_display(self, guild: discord.Guild | None, player: str) -> str:
         if guild is None:
@@ -105,6 +111,46 @@ class AbsenceCog(commands.Cog, name='Absences'):
                 self.live_absence_messages[channel_id] = message
             except Exception:
                 self.live_absence_messages.pop(channel_id, None)
+
+    async def _daily_refresh_loop(self):
+        """Background task that refreshes live absence messages every UTC midnight.
+
+        Uses UTC midnight to avoid per-guild timezone complexity. The task will
+        sleep until the next UTC midnight, then call `_refresh_live_absences()`.
+        """
+        # Wait until the bot is fully ready
+        try:
+            await self.bot.wait_until_ready()
+        except Exception:
+            # If bot doesn't support wait_until_ready or is already running, continue
+            pass
+
+        logger = logging.getLogger('discord')
+        try:
+            while True:
+                # Use server-local time so refresh happens at local midnight
+                now = datetime.datetime.now()
+                # next local midnight
+                tomorrow = now.date() + datetime.timedelta(days=1)
+                next_midnight = datetime.datetime.combine(tomorrow, datetime.time(0, 0))
+                sleep_seconds = (next_midnight - now).total_seconds()
+                if sleep_seconds > 0:
+                    await asyncio.sleep(sleep_seconds)
+
+                try:
+                    await self._refresh_live_absences()
+                except Exception as exc:
+                    logger.exception(f'Error during daily absence refresh: {exc}')
+        except asyncio.CancelledError:
+            return
+
+    def cog_unload(self):
+        # Cancel background task when cog is unloaded
+        try:
+            if getattr(self, '_daily_refresh_task', None):
+                self._daily_refresh_task.cancel()
+        except Exception:
+            pass
 
     async def _respond_embed_or_file(self, ctx: commands.Context, embed: discord.Embed, file_text: str = None, filename: str = 'output.txt', fallback_message: str = 'Output too large for embed; attached as a file.', ephemeral: bool = False, force_file: bool = False):
         def get_invoker():
