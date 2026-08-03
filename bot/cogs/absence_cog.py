@@ -80,12 +80,10 @@ class AbsenceCog(commands.Cog, name='Absences'):
 
             note_text = ''
             if absence.note:
-                note_lower = absence.note.lower()
-                if any(keyword in note_lower for keyword in ('late', 'minutes', 'min', 'mins', 'minute', 'hour', 'hours')):
-                    snippet = absence.note.strip()
-                    if len(snippet) > 60:
-                        snippet = snippet[:57].rstrip() + '...'
-                    note_text = f' - {snippet}'
+                snippet = absence.note.strip()
+                if len(snippet) > 60:
+                    snippet = snippet[:57].rstrip() + '...'
+                note_text = f' - {snippet}'
 
             embed.description += f'{absence.id} - {display_name} - {d}{note_text}\n'
 
