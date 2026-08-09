@@ -235,8 +235,16 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
         boss_names = [boss.strip() for boss in bosses.split(',') if boss.strip()]
         created_threads = []
+        template_content = (
+            '**Composition:**\n'
+            '- \n\n'
+            '**Video Reference:**\n'
+            '- \n\n'
+            '**Raid plan:**\n'
+            '- '
+        )
         for boss_name in boss_names:
-            thread = await raid_forum.create_thread(name=boss_name, content=f'Discussion thread for {boss_name}.')
+            thread = await raid_forum.create_thread(name=boss_name, content=template_content)
             created_threads.append(thread)
 
         result_embed = Embed(title='Raid Forum Created', color=0x00ff00)
@@ -244,6 +252,64 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         if created_threads:
             result_embed.add_field(name='Boss Threads', value='\n'.join(thread.name for thread in created_threads), inline=False)
         await ctx.respond(embed=result_embed)
+
+    async def _get_thread_starter_message(self, thread: discord.Thread):
+        starter = getattr(thread, 'starter_message', None)
+        if starter is not None:
+            return starter
+
+        if hasattr(thread, 'fetch_message'):
+            try:
+                return await thread.fetch_message(thread.id)
+            except (discord.NotFound, discord.Forbidden):
+                pass
+
+        async for message in thread.history(limit=1, oldest_first=True):
+            return message
+        return None
+
+    @commands.slash_command(description='Update a boss thread template in a raid forum thread.')
+    @commands.has_permissions(administrator=True)
+    async def bossupdate(
+        self,
+        ctx: commands.Context,
+        forum: discord.ForumChannel,
+        thread_name: str,
+        composition: str,
+        video_reference: str,
+        raid_plan: str
+    ):
+        if ctx.guild is None:
+            await ctx.respond('This command must be run in a guild.', ephemeral=True)
+            return
+
+        if not isinstance(forum, discord.ForumChannel):
+            await ctx.respond('Please provide a valid forum channel.', ephemeral=True)
+            return
+
+        thread = self._find_forum_thread(forum, thread_name)
+        if thread is None:
+            await ctx.respond(f'Could not find a thread named `{thread_name}` in {forum.mention}.', ephemeral=True)
+            return
+
+        starter_message = await self._get_thread_starter_message(thread)
+        if starter_message is None:
+            await ctx.respond('Unable to find the starter message for that thread.', ephemeral=True)
+            return
+
+        content = (
+            f'**Composition:**\n{composition}\n\n'
+            f'**Video Reference:**\n{video_reference}\n\n'
+            f'**Raid plan:**\n{raid_plan}'
+        )
+
+        try:
+            await starter_message.edit(content=content)
+        except discord.Forbidden:
+            await ctx.respond('Bot does not have permission to edit the starter message.', ephemeral=True)
+            return
+
+        await ctx.respond(f'Updated the template for {thread.mention}.')
 
     @commands.slash_command(description='Accept a trial and create the required trial workflow.')
     @commands.has_permissions(manage_roles=True)
