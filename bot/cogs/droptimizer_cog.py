@@ -22,6 +22,18 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         normalized = re.sub(r'[^a-z0-9-]', '', normalized)
         return normalized.strip('-') or 'user'
 
+    def _archive_channel_name(self, name: str) -> str:
+        date_str = datetime.date.today().strftime('%Y-%m-%d')
+        if name.endswith(f'-{date_str}'):
+            return name
+        return f'{name}-{date_str}'
+
+    async def _ensure_archive_category(self, guild: discord.Guild) -> discord.CategoryChannel:
+        archive_category = discord.utils.get(guild.categories, name='Archive')
+        if archive_category is None:
+            archive_category = await guild.create_category(name='Archive')
+        return archive_category
+
     def _find_forum_thread(self, forum: discord.ForumChannel, thread_name: str):
         if forum is None:
             return None
@@ -93,6 +105,145 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         reg_embed = Embed(title='Registered Channel')
         reg_embed.description = 'Successfully registered this channel to watch for Droptimizer Reports for this Guild Discord.'
         await ctx.respond(embed=reg_embed)
+
+    async def _set_read_only(self, channel: discord.abc.GuildChannel):
+        overwrite = channel.overwrites_for(channel.guild.default_role)
+        overwrite.view_channel = True
+        overwrite.send_messages = False
+        overwrite.create_public_threads = False
+        await channel.set_permissions(channel.guild.default_role, overwrite=overwrite)
+
+    @commands.slash_command(description='Archive a channel or forum to the Archive category and make it read-only.')
+    @commands.has_permissions(manage_channels=True)
+    async def archive(self, ctx: commands.Context, target: discord.abc.GuildChannel):
+        if ctx.guild is None:
+            await ctx.respond('This command must be run in a guild.', ephemeral=True)
+            return
+
+        if isinstance(target, discord.CategoryChannel):
+            await ctx.respond('Cannot archive a category. Please provide a text or forum channel.', ephemeral=True)
+            return
+
+        archive_category = await self._ensure_archive_category(ctx.guild)
+        new_name = self._archive_channel_name(target.name)
+
+        try:
+            await target.edit(category=archive_category, name=new_name)
+            await self._set_read_only(target)
+        except discord.Forbidden:
+            await ctx.respond('Bot does not have permission to archive that channel.', ephemeral=True)
+            return
+
+        await ctx.respond(f'Archived {target.mention} to {archive_category.name} and made it read-only.')
+
+    @commands.slash_command(description='Create the team feedback forum and shared feedback channel for officers and raiders.')
+    @commands.has_permissions(manage_channels=True)
+    async def feedback(self, ctx: commands.Context):
+        if ctx.guild is None:
+            await ctx.respond('This command must be run in a guild.', ephemeral=True)
+            return
+
+        forum = discord.utils.get(ctx.guild.channels, name='team_feedback')
+        if forum is None:
+            try:
+                forum = await ctx.guild.create_forum_channel(
+                    name='team_feedback',
+                    topic='Team feedback and discussion forum for Mist Officers, Raiders, and Trials.'
+                )
+            except discord.Forbidden:
+                await ctx.respond('Bot does not have permission to create the team_feedback forum.', ephemeral=True)
+                return
+
+        if not isinstance(forum, discord.ForumChannel):
+            await ctx.respond('A channel named team_feedback exists but is not a forum.', ephemeral=True)
+            return
+
+        feedback_channel = discord.utils.get(ctx.guild.channels, name='feedback')
+        if feedback_channel is None:
+            overwrites = {
+                ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)
+            }
+            for role_name in ('Mist Officer', 'Raiders', 'Trials'):
+                role = discord.utils.get(ctx.guild.roles, name=role_name)
+                if role is not None:
+                    overwrites[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_messages=True)
+
+            try:
+                feedback_channel = await ctx.guild.create_text_channel(
+                    name='feedback',
+                    topic='Shared feedback channel for Mist Officers, Raiders, and Trials.',
+                    overwrites=overwrites
+                )
+            except discord.Forbidden:
+                await ctx.respond('Bot does not have permission to create the feedback channel.', ephemeral=True)
+                return
+
+        general_feedback = self._find_forum_thread(forum, 'General Feedback')
+        if general_feedback is None:
+            general_feedback = await forum.create_thread(
+                name='General Feedback',
+                content=('This is a place for us and you to express our concerns or triumphs regarding performance. '
+                         'Please take it upon yourself to get ahead of the hammer if you have a bad night and highlight what was wrong and how you are going to fix it.')
+            )
+
+        secondary_message = (
+            'Raid Date:\n'
+            'Positive Takeaways:\n'
+            'Errors/Challenges:\n'
+            'General Thoughts:\n\n'
+            'There is something conceptually that some of you have read about with all the recent Ian interviews I am sure but it is the concept of the fact that wow has turned into two different games.\n\n'
+            '"There are two games being played in a raid group. There is game 1, which is the game that we built, which is beat the raid boss, clear the dungeon in the time limit. Then there’s game 2, which players have largely created for themselves, which is win DPS meters, beat my performance from last week, get a purple parse, get a gold parse, whatever else. We don’t create that game. But many people are playing it, and it is almost the primary motivation for them."\n\n'
+            'The best guilds focus on Game #1. We want everyone to be playing Game #1. This isn\'t to say we don\'t want you to be excited when you are playing exceptionally, but the goal and primary focus should be "How can I play most effectively and not die to kill this boss". A lot of times Game 2 plays into Game 1 when people are playing well they typically perform better and parse looks better anyway. We want to be a Game #1 guild.'
+        )
+
+        try:
+            secondary_post = await general_feedback.send(secondary_message)
+            await secondary_post.pin()
+        except discord.Forbidden:
+            await ctx.respond('Could not send or pin the secondary feedback post. Permissions may be missing.', ephemeral=True)
+            return
+
+        result_embed = Embed(title='Feedback Setup Complete', color=0x00ff00)
+        result_embed.add_field(name='Forum', value=forum.mention, inline=False)
+        result_embed.add_field(name='Feedback Channel', value=feedback_channel.mention if feedback_channel else 'N/A', inline=False)
+        result_embed.add_field(name='General Feedback Post', value=getattr(general_feedback, 'jump_url', getattr(general_feedback, 'url', 'N/A')), inline=False)
+        await ctx.respond(embed=result_embed)
+
+    @commands.slash_command(description='Create a raid forum and boss posts for the specified raid and season.')
+    @commands.has_permissions(manage_channels=True)
+    async def raid(self, ctx: commands.Context, raid_name: str, season: str, bosses: str):
+        if ctx.guild is None:
+            await ctx.respond('This command must be run in a guild.', ephemeral=True)
+            return
+
+        forum_name = self._normalize_channel_name(f'{raid_name}-{season}')
+        existing = discord.utils.get(ctx.guild.channels, name=forum_name)
+        if existing is not None:
+            await ctx.respond('A channel or forum with that raid name already exists.', ephemeral=True)
+            return
+
+        raid_category = discord.utils.get(ctx.guild.categories, name='Raids')
+        try:
+            raid_forum = await ctx.guild.create_forum_channel(
+                name=forum_name,
+                topic=f'Raid forum for {raid_name} ({season})',
+                category=raid_category
+            )
+        except discord.Forbidden:
+            await ctx.respond('Bot does not have permission to create the raid forum.', ephemeral=True)
+            return
+
+        boss_names = [boss.strip() for boss in bosses.split(',') if boss.strip()]
+        created_threads = []
+        for boss_name in boss_names:
+            thread = await raid_forum.create_thread(name=boss_name, content=f'Discussion thread for {boss_name}.')
+            created_threads.append(thread)
+
+        result_embed = Embed(title='Raid Forum Created', color=0x00ff00)
+        result_embed.add_field(name='Raid Forum', value=raid_forum.mention, inline=False)
+        if created_threads:
+            result_embed.add_field(name='Boss Threads', value='\n'.join(thread.name for thread in created_threads), inline=False)
+        await ctx.respond(embed=result_embed)
 
     @commands.slash_command(description='Accept a trial and create the required trial workflow.')
     @commands.has_permissions(manage_roles=True)
