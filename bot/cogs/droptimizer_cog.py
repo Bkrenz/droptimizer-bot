@@ -234,7 +234,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
         created_threads = []
         for member in sorted(member_set, key=lambda m: m.display_name.lower()):
-            thread_name = f'{member.display_name} • Feedback'
+            thread_name = f'{member.display_name}'
             if self._find_forum_thread(forum, thread_name) is not None:
                 continue
 
@@ -269,12 +269,22 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             await ctx.respond('A channel or forum with that raid name already exists.', ephemeral=True)
             return
 
-        raid_category = discord.utils.get(ctx.guild.categories, name='Raids')
+        raid_category = discord.utils.get(ctx.guild.categories, name='Raid Things')
+        if raid_category is None:
+            await ctx.respond('Could not find a category named `Raid Things`.', ephemeral=True)
+            return
+
+        position = None
+        team_feedback = discord.utils.get(raid_category.channels, name='team_feedback')
+        if team_feedback is not None:
+            position = team_feedback.position + 1
+
         try:
             raid_forum = await ctx.guild.create_forum_channel(
                 name=forum_name,
                 topic=f'Raid forum for {raid_name} ({season})',
-                category=raid_category
+                category=raid_category,
+                position=position
             )
         except discord.Forbidden:
             await ctx.respond('Bot does not have permission to create the raid forum.', ephemeral=True)
