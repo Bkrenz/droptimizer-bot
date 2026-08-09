@@ -352,24 +352,12 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         if team_feedback is not None:
             position = team_feedback.position + 1
 
-        overwrites = {ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)}
-        # Give the command runner full permissions on the forum
-        overwrites[ctx.author] = discord.PermissionOverwrite(
-            view_channel=True,
-            send_messages=True,
-            manage_messages=True,
-            manage_channels=True,
-            manage_threads=True,
-            create_public_threads=True
-        )
-
         try:
             wipe_forum = await ctx.guild.create_forum_channel(
                 name='wipefest',
                 topic='Wipefest aggregated reports and discussion.',
                 category=raid_category,
-                position=position,
-                overwrites=overwrites
+                position=position
             )
         except discord.Forbidden:
             await ctx.respond('Bot does not have permission to create the wipefest forum.', ephemeral=True)
@@ -391,48 +379,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         result.add_field(name='Resources Thread', value=getattr(wipe_thread, 'jump_url', getattr(wipe_thread, 'url', 'N/A')), inline=False)
         await ctx.respond(embed=result)
 
-    @commands.slash_command(description='Update a boss thread template in a raid forum thread.')
-    @commands.has_permissions(administrator=True)
-    async def bossupdate(
-        self,
-        ctx: commands.Context,
-        forum: discord.ForumChannel,
-        thread_name: str,
-        composition: str,
-        video_reference: str,
-        raid_plan: str
-    ):
-        if ctx.guild is None:
-            await ctx.respond('This command must be run in a guild.', ephemeral=True)
-            return
-
-        if not isinstance(forum, discord.ForumChannel):
-            await ctx.respond('Please provide a valid forum channel.', ephemeral=True)
-            return
-
-        thread = self._find_forum_thread(forum, thread_name)
-        if thread is None:
-            await ctx.respond(f'Could not find a thread named `{thread_name}` in {forum.mention}.', ephemeral=True)
-            return
-
-        starter_message = await self._get_thread_starter_message(thread)
-        if starter_message is None:
-            await ctx.respond('Unable to find the starter message for that thread.', ephemeral=True)
-            return
-
-        content = (
-            f'**Composition:**\n{composition}\n\n'
-            f'**Video Reference:**\n{video_reference}\n\n'
-            f'**Raid plan:**\n{raid_plan}'
-        )
-
-        try:
-            await starter_message.edit(content=content)
-        except discord.Forbidden:
-            await ctx.respond('Bot does not have permission to edit the starter message.', ephemeral=True)
-            return
-
-        await ctx.respond(f'Updated the template for {thread.mention}.')
+    
 
     @commands.slash_command(description='Accept a trial and create the required trial workflow.')
     @commands.has_permissions(manage_roles=True)
