@@ -256,14 +256,14 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         result_embed.add_field(name='Feedback Threads Created', value=str(len(created_threads)), inline=False)
         await ctx.respond(embed=result_embed)
 
-    @commands.slash_command(description='Create a raid forum and boss posts for the specified raid and season.')
+    @commands.slash_command(description='Create a raid forum and boss posts for the specified raid.')
     @commands.has_permissions(manage_channels=True)
-    async def raid(self, ctx: commands.Context, raid_name: str, season: str, bosses: str):
+    async def raid(self, ctx: commands.Context, raid_name: str, bosses: str):
         if ctx.guild is None:
             await ctx.respond('This command must be run in a guild.', ephemeral=True)
             return
 
-        forum_name = self._normalize_channel_name(f'{raid_name}-{season}')
+        forum_name = self._normalize_channel_name(f'{raid_name}')
         existing = discord.utils.get(ctx.guild.channels, name=forum_name)
         if existing is not None:
             await ctx.respond('A channel or forum with that raid name already exists.', ephemeral=True)
@@ -282,7 +282,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         try:
             raid_forum = await ctx.guild.create_forum_channel(
                 name=forum_name,
-                topic=f'Raid forum for {raid_name} ({season})',
+                topic=f'Raid forum for {raid_name}',
                 category=raid_category,
                 position=position
             )
@@ -292,16 +292,25 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
         boss_names = [boss.strip() for boss in bosses.split(',') if boss.strip()]
         created_threads = []
-        template_content = (
-            '**Composition:**\n'
-            '- \n\n'
-            '**Video Reference:**\n'
-            '- \n\n'
-            '**Raid plan:**\n'
-            '- '
+
+        # Create a shared resources thread that contains the raid template
+        resources_template = (
+            '```\n'
+            'Composition:\n'
+            'Video Reference:\n'
+            'Raid plan:\n'
+            '```'
         )
+        try:
+            resources_thread = await raid_forum.create_thread(name='raid-resources', content=resources_template)
+            created_threads.append(resources_thread)
+        except discord.Forbidden:
+            await ctx.respond('Bot does not have permission to create threads in the raid forum.', ephemeral=True)
+            return
+
+        # Create a thread per boss; initial content simply repeats the boss name
         for boss_name in boss_names:
-            thread = await raid_forum.create_thread(name=boss_name, content=template_content)
+            thread = await raid_forum.create_thread(name=boss_name, content=boss_name)
             created_threads.append(thread)
 
         result_embed = Embed(title='Raid Forum Created', color=0x00ff00)
@@ -324,6 +333,63 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         async for message in thread.history(limit=1, oldest_first=True):
             return message
         return None
+
+    @commands.slash_command(description='Create the wipefest forum and resources post.')
+    @commands.has_permissions(manage_channels=True)
+    async def wipefest(self, ctx: commands.Context):
+        if ctx.guild is None:
+            await ctx.respond('This command must be run in a guild.', ephemeral=True)
+            return
+
+        raid_category = discord.utils.get(ctx.guild.categories, name='Raid Things')
+        if raid_category is None:
+            await ctx.respond('Could not find a category named `Raid Things`.', ephemeral=True)
+            return
+
+        # Position under team_feedback when possible
+        position = None
+        team_feedback = discord.utils.get(raid_category.channels, name='team_feedback')
+        if team_feedback is not None:
+            position = team_feedback.position + 1
+
+        overwrites = {ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)}
+        # Give the command runner full permissions on the forum
+        overwrites[ctx.author] = discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            manage_messages=True,
+            manage_channels=True,
+            manage_threads=True,
+            create_public_threads=True
+        )
+
+        try:
+            wipe_forum = await ctx.guild.create_forum_channel(
+                name='wipefest',
+                topic='Wipefest aggregated reports and discussion.',
+                category=raid_category,
+                position=position,
+                overwrites=overwrites
+            )
+        except discord.Forbidden:
+            await ctx.respond('Bot does not have permission to create the wipefest forum.', ephemeral=True)
+            return
+
+        wipe_content = (
+            'These reports should be taken with a grain of salt and will never tell the full story but I do think there\'s value in seeing the aggregated data. '
+            'Please use these reports to enhance/ give a starting point for your personal feedback channel. Everything is filtered to show up until first 2 deaths unless otherwise stated.'
+        )
+
+        try:
+            wipe_thread = await wipe_forum.create_thread(name='wipefest-resources', content=wipe_content)
+        except discord.Forbidden:
+            await ctx.respond('Bot does not have permission to create threads in wipefest forum.', ephemeral=True)
+            return
+
+        result = Embed(title='Wipefest Created', color=0x00ff00)
+        result.add_field(name='Forum', value=wipe_forum.mention, inline=False)
+        result.add_field(name='Resources Thread', value=getattr(wipe_thread, 'jump_url', getattr(wipe_thread, 'url', 'N/A')), inline=False)
+        await ctx.respond(embed=result)
 
     @commands.slash_command(description='Update a boss thread template in a raid forum thread.')
     @commands.has_permissions(administrator=True)
