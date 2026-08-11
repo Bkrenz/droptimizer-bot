@@ -60,7 +60,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         return f'{member.display_name} • Trial'
 
     def _team_feedback_thread_name(self, member: discord.Member) -> str:
-        return f'{member.display_name} • Team Feedback'
+        return f'{member.display_name}'
 
     droptimizer = SlashCommandGroup('droptimizer', 'Droptimizer Commands')
     dropadmin = droptimizer.create_subgroup('admin', 'Droptimizer Administrative Commands')
