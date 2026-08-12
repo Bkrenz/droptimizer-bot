@@ -23,10 +23,13 @@ class WowAudit:
 
         data = {
             'report_id': report_id,
-            "configuration_name": "Single Target",
             'replace_manual_edits': True,
             'clear_conduits': True
         }
+
+        configuration_name = os.getenv('WOW_AUDIT_CONFIGURATION')
+        if configuration_name:
+            data['configuration_name'] = configuration_name
 
         try:
             async with aiohttp.ClientSession() as session:
@@ -34,7 +37,8 @@ class WowAudit:
                 resp = json.loads(await result.text())
                 return resp
         except Exception as e:
-            print(e + '\n' + e.with_traceback())
+            print(e)
+            return {'created': False, 'base': [str(e)]}
 
 
     @staticmethod
