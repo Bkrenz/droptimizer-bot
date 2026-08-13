@@ -92,11 +92,17 @@ class WowAudit:
     @staticmethod
     async def upload_raidbots_report(report_code):
         resp = await WowAudit.upload_report(report_code)
-        if resp['created']:
+        print(f"=== Raidbots Report Response ===")
+        print(f"Report Code: {report_code}")
+        print(f"Full Response: {resp}")
+        print(f"Created: {resp.get('created')}")
+        print(f"Base: {resp.get('base')}")
+        print(f"================================")
+        
+        if resp.get('created'):
             return RaidbotsEmbed.create(report_code, True, None)
         else:
             error_list = resp.get('base', ['Unknown error'])
-            print(f"Raidbots Report Error - Report: {report_code}, Errors: {error_list}")
             return RaidbotsEmbed.create(report_code, False, error_list)
 
     @staticmethod
