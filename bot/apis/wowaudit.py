@@ -1,10 +1,15 @@
 import json
 import os
 import asyncio
+import logging
 import requests
 import aiohttp
 from ..embeds.raidbots_embed import RaidbotsEmbed
 from ..embeds.qe_live_embed import QELiveEmbed
+
+# Setup logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 WOW_AUDIT_URL = 'https://wowaudit.com/v1/wishlists'
 
@@ -25,6 +30,7 @@ class WowAudit:
         data = {
             'report_id': report_id,
             'replace_manual_edits': True,
+            'configuration_name': 'Single Target',
             'clear_conduits': True
         }
 
@@ -92,12 +98,12 @@ class WowAudit:
     @staticmethod
     async def upload_raidbots_report(report_code):
         resp = await WowAudit.upload_report(report_code)
-        print(f"=== Raidbots Report Response ===")
-        print(f"Report Code: {report_code}")
-        print(f"Full Response: {resp}")
-        print(f"Created: {resp.get('created')}")
-        print(f"Base: {resp.get('base')}")
-        print(f"================================")
+        logger.debug(f"=== Raidbots Report Response ===")
+        logger.debug(f"Report Code: {report_code}")
+        logger.debug(f"Full Response: {resp}")
+        logger.debug(f"Created: {resp.get('created')}")
+        logger.debug(f"Base: {resp.get('base')}")
+        logger.debug(f"================================")
         
         if resp.get('created'):
             return RaidbotsEmbed.create(report_code, True, None)
