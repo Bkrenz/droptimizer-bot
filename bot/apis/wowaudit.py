@@ -35,25 +35,43 @@ class WowAudit:
         try:
             async with aiohttp.ClientSession() as session:
                 result = await session.post(url, headers=headers, json=data)
+                response_text = await result.text()
                 
-                # Check for HTTP errors
-                if result.status >= 400:
-                    error_text = await result.text()
-                    print(f"WowAudit API Error (HTTP {result.status}): {error_text}")
-                    
-                    # Try to extract error message from API response
-                    try:
-                        error_resp = json.loads(error_text)
-                        error_msg = error_resp.get('error') or error_resp.get('message') or error_resp.get('base') or error_text
-                        if isinstance(error_msg, list):
-                            error_msg = '\n'.join(str(e) for e in error_msg)
-                    except (json.JSONDecodeError, AttributeError):
-                        error_msg = error_text or f"HTTP {result.status}"
-                    
-                    return {'created': False, 'base': [error_msg] if error_msg else [f"HTTP {result.status}"]}
+                # Try to parse response as JSON
+                try:
+                    resp = json.loads(response_text)
+                except json.JSONDecodeError:
+                    # If JSON parsing fails, check HTTP status
+                    if result.status >= 400:
+                        print(f"WowAudit API Error (HTTP {result.status}): {response_text}")
+                        return {'created': False, 'base': [response_text or f"HTTP {result.status}"]}
+                    # If status is ok but can't parse JSON, return error
+                    print(f"Invalid JSON response from WowAudit: {response_text}")
+                    return {'created': False, 'base': ["WowAudit returned an unexpected response. Please try again later."]}
                 
-                resp = json.loads(await result.text())
-                return resp
+                # Check if response indicates success
+                if resp.get('created') is True:
+                    return resp
+                
+                # Response was parsed but indicates an error (created is False or missing)
+                # Extract error message from response
+                error_msg = None
+                if isinstance(resp.get('base'), list) and resp['base']:
+                    # base is a list of errors
+                    error_msg = resp['base']
+                elif isinstance(resp.get('base'), str):
+                    # base is a single error string
+                    error_msg = [resp['base']]
+                elif 'error' in resp:
+                    error_msg = [resp['error']] if isinstance(resp['error'], str) else resp['error']
+                elif 'message' in resp:
+                    error_msg = [resp['message']] if isinstance(resp['message'], str) else resp['message']
+                else:
+                    # Couldn't find specific error, return the whole response
+                    error_msg = [json.dumps(resp)]
+                
+                print(f"WowAudit API returned error: {error_msg}")
+                return {'created': False, 'base': error_msg or ['Unknown error']}
         except aiohttp.ClientConnectionError as e:
             print(f"Connection error connecting to WowAudit: {e}")
             return {'created': False, 'base': ["Unable to connect to WowAudit. Please check your internet connection and try again."]}
@@ -77,8 +95,9 @@ class WowAudit:
         if resp['created']:
             return RaidbotsEmbed.create(report_code, True, None)
         else:
-            print(resp)
-            return RaidbotsEmbed.create(report_code, False, resp['base'])
+            error_list = resp.get('base', ['Unknown error'])
+            print(f"Raidbots Report Error - Report: {report_code}, Errors: {error_list}")
+            return RaidbotsEmbed.create(report_code, False, error_list)
 
     @staticmethod
     async def upload_qe_live_report(report_code):
