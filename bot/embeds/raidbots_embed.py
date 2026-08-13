@@ -18,8 +18,13 @@ class RaidbotsEmbed:
         embed.description += 'To view the WowAudit Wishlists, follow [this link](https://wowaudit.com/us/illidan/mist/mist/wishlists/overview).\n'
 
         if not success:
-            embed.description += '\nYour report could not be processed due to the following error: '
-            embed.description += f'```{issue}```'
+            embed.description += '\nYour report could not be processed due to the following error(s): '
+            # Format the error message - handle both list and string inputs
+            if isinstance(issue, list):
+                error_msg = '\n'.join(str(e) for e in issue) if issue else 'Unknown error'
+            else:
+                error_msg = str(issue)
+            embed.description += f'```{error_msg}```'
 
         embed.description += f'\n{ISSUES_NOTE}'
             
