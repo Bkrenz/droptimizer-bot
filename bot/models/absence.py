@@ -1,7 +1,11 @@
 import datetime
+from zoneinfo import ZoneInfo
+
 from . import Base, intpk, str50, session
 from sqlalchemy import select, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
+
+ET = ZoneInfo('America/New_York')
 
 class Absence(Base):
     __tablename__ = 'absences'
@@ -21,7 +25,7 @@ class Absence(Base):
     
     @staticmethod
     def get_absences() -> list:
-        yesterday = datetime.date.today() - datetime.timedelta(days=1)
+        yesterday = datetime.datetime.now(ET).date() - datetime.timedelta(days=1)
         result = session.query(Absence).filter(Absence.date_end > yesterday).all()
         return result
     

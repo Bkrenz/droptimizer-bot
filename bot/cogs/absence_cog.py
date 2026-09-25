@@ -4,12 +4,29 @@ import io
 import logging
 import os
 import json
+from zoneinfo import ZoneInfo
+
 import discord
 from discord import Embed
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 
 from ..models.absence import Absence
+
+ET = ZoneInfo('America/New_York')
+
+
+def _next_refresh_time_et(now: datetime.datetime | None = None) -> datetime.datetime:
+    """Return the next 7:00 AM ET refresh time."""
+    if now is None:
+        now = datetime.datetime.now(ET)
+    elif now.tzinfo is None:
+        now = now.replace(tzinfo=ET)
+
+    next_refresh = now.replace(hour=7, minute=0, second=0, microsecond=0)
+    if now >= next_refresh:
+        next_refresh += datetime.timedelta(days=1)
+    return next_refresh
 
 from ..embeds import ItemColors, MIST_LOGO_URL, ISSUES_NOTE, FOOTER_DESC
 
@@ -59,7 +76,7 @@ class AbsenceCog(commands.Cog, name='Absences'):
         return str(player)
 
     async def _build_live_absences_embed(self, guild: discord.Guild | None) -> discord.Embed:
-        today = datetime.date.today()
+        today = datetime.datetime.now(ET).date()
         end_date = today + datetime.timedelta(days=30)
         absences = [
             a for a in sorted(Absence.get_absences(), key=lambda x: x.date_begin)
@@ -111,27 +128,18 @@ class AbsenceCog(commands.Cog, name='Absences'):
                 self.live_absence_messages.pop(channel_id, None)
 
     async def _daily_refresh_loop(self):
-        """Background task that refreshes live absence messages every UTC midnight.
-
-        Uses UTC midnight to avoid per-guild timezone complexity. The task will
-        sleep until the next UTC midnight, then call `_refresh_live_absences()`.
-        """
-        # Wait until the bot is fully ready
+        """Background task that refreshes live absence messages at 7:00 AM ET each day."""
         try:
             await self.bot.wait_until_ready()
         except Exception:
-            # If bot doesn't support wait_until_ready or is already running, continue
             pass
 
         logger = logging.getLogger('discord')
         try:
             while True:
-                # Use server-local time so refresh happens at local midnight
-                now = datetime.datetime.now()
-                # next local midnight
-                tomorrow = now.date() + datetime.timedelta(days=1)
-                next_midnight = datetime.datetime.combine(tomorrow, datetime.time(0, 0))
-                sleep_seconds = (next_midnight - now).total_seconds()
+                now = datetime.datetime.now(ET)
+                next_refresh = _next_refresh_time_et(now)
+                sleep_seconds = (next_refresh - now).total_seconds()
                 if sleep_seconds > 0:
                     await asyncio.sleep(sleep_seconds)
 
@@ -695,7 +703,7 @@ class AbsenceModal(discord.ui.Modal):
             if begin_date is None or end_date is None:
                 raise ValueError('Invalid date format')
 
-            today = datetime.datetime.now().date()
+            today = datetime.datetime.now(ET).date()
             if begin_date.date() < today or end_date.date() < today:
                 raise ValueError('You cannot post an abcense in the past.')
 

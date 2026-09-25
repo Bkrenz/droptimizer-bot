@@ -54,10 +54,10 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         return True
 
     def _trial_channel_name(self, member: discord.Member) -> str:
-        return f'trial-{self._normalize_channel_name(member.display_name)}'
+        return self._normalize_channel_name(member.display_name)
 
     def _trial_feedback_thread_name(self, member: discord.Member) -> str:
-        return f'{member.display_name} • Trial'
+        return f'{member.display_name}'
 
     def _team_feedback_thread_name(self, member: discord.Member) -> str:
         return f'{member.display_name}'
@@ -465,14 +465,14 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             if warcraft_logs_url:
                 break
 
-        trial_post_name = f'{member.display_name} • Trial'
+        trial_post_name = f'{member.display_name}'
         trial_post = await trial_feedback_forum.create_thread(
             name=trial_post_name,
             content=(f'Start date: {parsed_start.strftime("%m/%d/%Y")}\n'
                      f'Warcraft Logs: {warcraft_logs_url or "Not found from application."}')
         )
 
-        team_post_name = f'{member.display_name} • Team Feedback'
+        team_post_name = f'{member.display_name}'
         team_post = await team_feedback_forum.create_thread(
             name=team_post_name,
             content=('This is a place for us and you to express our concerns or triumphs regarding performance. '
