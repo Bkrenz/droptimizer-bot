@@ -8,10 +8,33 @@ from zoneinfo import ZoneInfo
 
 import discord
 from discord import Embed
-from discord.commands import SlashCommandGroup
 from discord.ext import commands
 
+if not hasattr(commands, 'slash_command'):
+    def _compat_slash_command(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+    commands.slash_command = _compat_slash_command
+
+try:
+    from discord.commands import SlashCommandGroup
+except ImportError:
+    class SlashCommandGroup:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def command(self, *args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+
+        def create_subgroup(self, *args, **kwargs):
+            return self
+
 from ..models.absence import Absence
+from ..raid_reminder import _next_raid_reminder_time_et, _build_raid_reminder_message
 
 ET = ZoneInfo('America/New_York')
 
@@ -42,6 +65,11 @@ class AbsenceCog(commands.Cog, name='Absences'):
         except Exception:
             # If task creation fails during import or test runs, don't crash the cog
             self._daily_refresh_task = None
+
+        try:
+            self._raid_reminder_task = self.bot.loop.create_task(self._raid_reminder_loop())
+        except Exception:
+            self._raid_reminder_task = None
 
     async def _resolve_player_display(self, guild: discord.Guild | None, player: str) -> str:
         if guild is None:
@@ -150,11 +178,68 @@ class AbsenceCog(commands.Cog, name='Absences'):
         except asyncio.CancelledError:
             return
 
+    async def _send_raid_reminder(self):
+        logger = logging.getLogger('discord')
+        for guild in self.bot.guilds:
+            channel = discord.utils.get(guild.channels, name='raid-discussion')
+            if channel is None:
+                channel = discord.utils.get(guild.channels, name='raid discussion')
+            if channel is None:
+                continue
+
+            def _find_role(role_name: str):
+                role_name_lower = role_name.lower()
+                for role in guild.roles:
+                    if role.name.lower() == role_name_lower:
+                        return role
+                return None
+
+            raiders_role = _find_role('raiders')
+            trials_role = _find_role('trials')
+            message = _build_raid_reminder_message(
+                raiders_role.mention if raiders_role else '@raiders',
+                trials_role.mention if trials_role else '@trials',
+            )
+
+            try:
+                await channel.send(message)
+            except Exception as exc:
+                logger.warning(f'Failed to send raid reminder to #{channel.name}: {exc}')
+
+    async def _raid_reminder_loop(self):
+        """Background task that announces raid time at 8:45 PM ET each day."""
+        try:
+            await self.bot.wait_until_ready()
+        except Exception:
+            pass
+
+        logger = logging.getLogger('discord')
+        try:
+            while True:
+                now = datetime.datetime.now(ET)
+                next_reminder = _next_raid_reminder_time_et(now)
+                sleep_seconds = (next_reminder - now).total_seconds()
+                if sleep_seconds > 0:
+                    await asyncio.sleep(sleep_seconds)
+
+                try:
+                    await self._send_raid_reminder()
+                except Exception as exc:
+                    logger.exception(f'Error during raid reminder broadcast: {exc}')
+        except asyncio.CancelledError:
+            return
+
     def cog_unload(self):
         # Cancel background task when cog is unloaded
         try:
             if getattr(self, '_daily_refresh_task', None):
                 self._daily_refresh_task.cancel()
+        except Exception:
+            pass
+
+        try:
+            if getattr(self, '_raid_reminder_task', None):
+                self._raid_reminder_task.cancel()
         except Exception:
             pass
 
