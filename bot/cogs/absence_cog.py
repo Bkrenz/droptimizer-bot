@@ -39,6 +39,10 @@ from ..raid_reminder import _next_raid_reminder_time_et, _build_raid_reminder_me
 ET = ZoneInfo('America/New_York')
 
 
+def _absence_setup_prompt_text() -> str:
+    return "## Add Absence\nUse this button to register a new Absence"
+
+
 def _next_refresh_time_et(now: datetime.datetime | None = None) -> datetime.datetime:
     """Return the next 7:00 AM ET refresh time."""
     if now is None:
@@ -59,6 +63,7 @@ class AbsenceCog(commands.Cog, name='Absences'):
         self.bot = bot
         self.bot.add_view(AbsenceView())
         self.live_absence_messages = {}
+        self.live_absence_setup_messages = {}
         # Start a background task to refresh live absence messages once per day (UTC midnight)
         try:
             self._daily_refresh_task = self.bot.loop.create_task(self._daily_refresh_loop())
@@ -138,6 +143,25 @@ class AbsenceCog(commands.Cog, name='Absences'):
         embed.set_footer(text=FOOTER_DESC, icon_url=MIST_LOGO_URL)
         return embed
 
+    async def _refresh_absence_setup_post(self, channel):
+        if channel is None:
+            return
+
+        old_message = self.live_absence_setup_messages.get(channel.id)
+        if old_message is not None:
+            try:
+                await old_message.delete()
+            except Exception:
+                pass
+
+        try:
+            message = await channel.send(_absence_setup_prompt_text(), view=AbsenceView())
+            self.live_absence_setup_messages[channel.id] = message
+            return message
+        except Exception:
+            self.live_absence_setup_messages.pop(channel.id, None)
+            return None
+
     async def _refresh_live_absences(self):
         if not self.live_absence_messages:
             return
@@ -152,6 +176,7 @@ class AbsenceCog(commands.Cog, name='Absences'):
                 embed = await self._build_live_absences_embed(channel.guild if hasattr(channel, 'guild') else None)
                 message = await channel.send(embed=embed)
                 self.live_absence_messages[channel_id] = message
+                await self._refresh_absence_setup_post(channel)
             except Exception:
                 self.live_absence_messages.pop(channel_id, None)
 
@@ -310,7 +335,9 @@ class AbsenceCog(commands.Cog, name='Absences'):
 
     @commands.slash_command(description='Setup this channel to support Raid Absences.')
     async def setup_absences(self, ctx: commands.Context):
-        await ctx.respond("## Use this button to register a new Absence", view=AbsenceView())
+        if ctx.channel is not None:
+            await self._refresh_absence_setup_post(ctx.channel)
+        await ctx.respond('Absence setup refreshed.', ephemeral=True)
 
     @commands.slash_command(description='Get all registered absences.')
     async def get_absences(self, ctx: commands.Context):
