@@ -19,3 +19,4 @@ tmp/
 # Ignore Alembic 
 alembic/
 alembic.ini
+tests/test_raid_reminder.py

@@ -1,10 +1,35 @@
 import os
 import re
+import asyncio
 import datetime
+from zoneinfo import ZoneInfo
+
 import discord
 from discord import Embed
-from discord.commands import SlashCommandGroup
 from discord.ext import commands
+
+if not hasattr(commands, 'slash_command'):
+    def _compat_slash_command(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+    commands.slash_command = _compat_slash_command
+
+try:
+    from discord.commands import SlashCommandGroup
+except ImportError:
+    class SlashCommandGroup:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def command(self, *args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+
+        def create_subgroup(self, *args, **kwargs):
+            return self
 
 from sqlalchemy import delete, select
 
@@ -12,10 +37,82 @@ from ..models.discord.saved_channels import SavedChannel
 from ..apis.raidbots import RaidBots
 from ..apis.wowaudit import WowAudit
 
+ET = ZoneInfo('America/New_York')
+
+
+def _feedback_nag_message(member_mention: str) -> str:
+    messages = [
+        'your feedback thread is feeling lonely. Give it a performance comment before it starts talking to itself.',
+        'the raid logs have spoken, and they would like a tiny review from their favorite main character.',
+        'please post your weekly performance comment. Even the combat log is tired of being the only one doing the writing.',
+        'your feedback thread called. It says it has seen your parses and would like to discuss them calmly.',
+        'one weekly performance comment, coming right up. It pairs nicely with cooldowns and questionable confidence.',
+        'please update your performance comment before your thread gets marked absent from its own attendance sheet.',
+        'the raid may be over, but your feedback assignment has respawned.',
+        'your logs are ready for their character development arc. Please add this week\'s performance comment.',
+        'time to tell us how you performed before the boss gets to write the review first.',
+        'your feedback thread has more empty space than a raid leader\'s five-minute break. Please fill it in.',
+        'please leave your weekly performance comment. The meters are not going to explain themselves.',
+        'your thread is waiting patiently, which is more than we can say for some people waiting on lust.',
+        'a weekly performance comment keeps the raid team informed and the accountability goblin unemployed.',
+        'please update your performance notes before your best parse becomes ancient raid history.',
+        'your feedback thread is currently doing zero DPS. Help it contribute with a weekly comment.',
+        'the raid has cleared, the loot is distributed, and your performance comment remains the final boss.',
+        'please post your weekly review. It is a low-mechanics encounter with a guaranteed clear.',
+        'your combat log has questions, and this feedback thread is the designated answer box.',
+        'time for your weekly performance comment: dodge the excuses, press submit, and collect zero repair costs.',
+        'your thread is ready for a fresh pull. This one only requires words instead of defensives.',
+        'please add your weekly performance comment before the logs start filing a missing-person report.',
+        'the bosses have been analyzed. Now it is your turn to provide the director\'s commentary.',
+        'your performance thread is waiting for content, much like a raid group waiting for the last DPS.',
+        'one small comment for you, one giant leap for raid accountability.',
+        'please update your weekly performance comment. The only thing missing from the recap is, well, the recap.',
+        'your logs are not judging you. They are simply taking notes. Please add your thoughts.',
+        'this is your friendly reminder to turn last week\'s wipefest into this week\'s thoughtful reflection.',
+        'your feedback thread has survived another reset. Reward it with a performance comment.',
+        'please write up your weekly performance before the raid leader invents a creative interpretation of it.',
+        'your thread is at 0 percent completion and 100 percent potential. The math says it is your turn.',
+        'the meters have numbers, the raid has memories, and your feedback thread has an appointment with you.',
+        'please post your weekly performance comment. It is the only encounter where overthinking is extra credit.',
+        'your raid performance deserves a recap, even if the recap begins with "well, that pull was weird."',
+        'the feedback boss has entered phase two: politely asking again for your weekly comment.',
+        'please update your thread before it gets a heroic achievement for surviving another empty week.',
+        'your logs are loaded, your excuses are ready, and your weekly performance comment is still in queue.',
+        'a fresh week, a fresh comment, and the same heroic commitment to pretending that mechanic was unavoidable.',
+        'please give your feedback thread some attention. It has been standing in the same empty space for a week.',
+        'your weekly comment is ready to be pulled. Remember to bring your best insight and a healthstone.',
+        'the raid review is not a mythic boss. One focused attempt should be enough to clear it.',
+        'please post your weekly performance comment before the thread starts asking the raid leader for help.',
+    ]
+    index = datetime.date.today().toordinal() % len(messages)
+    return f'{member_mention} Please post your weekly performance comment: {messages[index]}'
+
+
+def _detect_thread_owner_from_history(messages, bot_id: int):
+    for message in messages:
+        if getattr(message.author, 'id', None) == bot_id:
+            if getattr(message, 'mentions', None):
+                return message.mentions[0].id
+            continue
+        if getattr(message.author, 'bot', False):
+            continue
+        return getattr(message.author, 'id', None)
+    return None
+
+
 class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
     def __init__(self, bot):
         self.bot = bot
+        self._weekly_nag_sent = {}
+        try:
+            self._weekly_nag_task = self.bot.loop.create_task(self._weekly_feedback_nag_loop())
+        except Exception:
+            self._weekly_nag_task = None
+
+    def cog_unload(self):
+        if getattr(self, '_weekly_nag_task', None):
+            self._weekly_nag_task.cancel()
 
     def _normalize_channel_name(self, name: str) -> str:
         normalized = name.lower().replace(' ', '-')
@@ -39,15 +136,19 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             return None
         return discord.utils.get(forum.threads, name=thread_name)
 
-    async def _delete_forum_thread(self, forum: discord.ForumChannel, thread_name: str) -> bool:
+    async def _delete_forum_thread(self, forum: discord.ForumChannel, thread_name: str, *, member: discord.Member | None = None) -> bool:
         thread = self._find_forum_thread(forum, thread_name)
+        if thread is None and member is not None:
+            thread = await self._find_forum_thread_for_member(forum, member)
         if thread is None:
             return False
         await thread.delete()
         return True
 
-    async def _delete_channel(self, guild: discord.Guild, channel_name: str) -> bool:
+    async def _delete_channel(self, guild: discord.Guild, channel_name: str, *, member: discord.Member | None = None) -> bool:
         channel = discord.utils.get(guild.channels, name=channel_name)
+        if channel is None and member is not None:
+            channel = await self._find_channel_for_member(guild, member, category_name='officers')
         if channel is None:
             return False
         await channel.delete()
@@ -61,6 +162,48 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
     def _team_feedback_thread_name(self, member: discord.Member) -> str:
         return f'{member.display_name}'
+
+    async def _find_channel_for_member(self, guild: discord.Guild, member: discord.Member, *, category_name: str | None = None):
+        expected_name = self._trial_channel_name(member)
+        channel = discord.utils.get(guild.channels, name=expected_name)
+        if channel is not None:
+            return channel
+
+        for channel in guild.channels:
+            if not isinstance(channel, discord.TextChannel):
+                continue
+            if category_name is not None and getattr(channel.category, 'name', None) not in {category_name, category_name.lower()}:
+                continue
+            topic = channel.topic or ''
+            if member.display_name.lower() in topic.lower():
+                return channel
+            if self._normalize_channel_name(member.display_name) in channel.name.lower():
+                return channel
+        return None
+
+    async def _find_forum_thread_for_member(self, forum: discord.ForumChannel, member: discord.Member):
+        if forum is None:
+            return None
+
+        expected_names = {self._trial_feedback_thread_name(member), self._team_feedback_thread_name(member)}
+        for thread in forum.threads:
+            if thread.name in expected_names:
+                return thread
+            if getattr(thread, 'owner_id', None) == member.id:
+                return thread
+
+        for thread in forum.threads:
+            starter = await self._get_thread_starter_message(thread)
+            if starter is None:
+                continue
+            if getattr(starter, 'author', None) is not None and starter.author.id == member.id:
+                return thread
+            if any(getattr(user, 'id', None) == member.id for user in getattr(starter, 'mentions', [])):
+                return thread
+            content = getattr(starter, 'content', '') or ''
+            if member.display_name.lower() in content.lower() or f'<@{member.id}>' in content:
+                return thread
+        return None
 
     droptimizer = SlashCommandGroup('droptimizer', 'Droptimizer Commands')
     dropadmin = droptimizer.create_subgroup('admin', 'Droptimizer Administrative Commands')
@@ -240,7 +383,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
             thread = await forum.create_thread(
                 name=thread_name,
-                content=member_template
+                content=f'{member.mention}\n\n{member_template}'
             )
             created_threads.append(thread)
             starter = await self._get_thread_starter_message(thread)
@@ -333,6 +476,83 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         async for message in thread.history(limit=1, oldest_first=True):
             return message
         return None
+
+    async def _resolve_member_for_thread(self, thread: discord.Thread):
+        if thread is None:
+            return None
+
+        try:
+            async for message in thread.history(limit=50, oldest_first=True):
+                if message.author.id == self.bot.user.id:
+                    if getattr(message, 'mentions', None):
+                        for user in message.mentions:
+                            if user.id != self.bot.user.id:
+                                return thread.guild.get_member(user.id) or user
+                    continue
+                if getattr(message.author, 'bot', False):
+                    continue
+                return thread.guild.get_member(message.author.id) or message.author
+        except Exception:
+            pass
+
+        starter = await self._get_thread_starter_message(thread)
+        if starter is not None and starter.author.id != self.bot.user.id:
+            return thread.guild.get_member(starter.author.id) or starter.author
+        return None
+
+    async def _send_weekly_feedback_nag(self, thread: discord.Thread):
+        if thread is None or thread.archived:
+            return
+
+        member = await self._resolve_member_for_thread(thread)
+        if member is None:
+            return
+
+        now = datetime.datetime.now(ET)
+        last_sent = self._weekly_nag_sent.get(thread.id)
+        if last_sent is not None and now - last_sent < datetime.timedelta(days=7):
+            return
+
+        recent_post = False
+        try:
+            async for message in thread.history(limit=50, oldest_first=False):
+                if message.author.id != member.id:
+                    continue
+                if now - message.created_at.replace(tzinfo=ET) < datetime.timedelta(days=7):
+                    recent_post = True
+                    break
+        except Exception:
+            recent_post = False
+
+        if recent_post:
+            return
+
+        try:
+            await thread.send(_feedback_nag_message(member.mention))
+            self._weekly_nag_sent[thread.id] = now
+        except Exception:
+            pass
+
+    async def _weekly_feedback_nag_loop(self):
+        try:
+            await self.bot.wait_until_ready()
+        except Exception:
+            pass
+
+        while True:
+            try:
+                for guild in self.bot.guilds:
+                    forum = discord.utils.get(guild.channels, name='team_feedback')
+                    if not isinstance(forum, discord.ForumChannel):
+                        continue
+                    for thread in list(forum.threads):
+                        await self._send_weekly_feedback_nag(thread)
+            except asyncio.CancelledError:
+                return
+            except Exception:
+                pass
+
+            await asyncio.sleep(3600)
 
     @commands.slash_command(description='Create the wipefest forum and resources post.')
     @commands.has_permissions(manage_channels=True)
@@ -475,7 +695,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         team_post_name = f'{member.display_name}'
         team_post = await team_feedback_forum.create_thread(
             name=team_post_name,
-            content=('This is a place for us and you to express our concerns or triumphs regarding performance. '
+            content=(f'{member.mention}\n\nThis is a place for us and you to express our concerns or triumphs regarding performance. '
                      'Please take it upon yourself to get ahead of the hammer if you have a bad night and highlight what was wrong and how you are going to fix it.')
         )
 
@@ -497,8 +717,8 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         trial_feedback_name = self._trial_feedback_thread_name(member)
 
         trial_feedback_forum = discord.utils.get(ctx.guild.channels, name='trial_feedback')
-        deleted_channel = await self._delete_channel(ctx.guild, trial_channel_name)
-        deleted_feedback = await self._delete_forum_thread(trial_feedback_forum, trial_feedback_name) if isinstance(trial_feedback_forum, discord.ForumChannel) else False
+        deleted_channel = await self._delete_channel(ctx.guild, trial_channel_name, member=member)
+        deleted_feedback = await self._delete_forum_thread(trial_feedback_forum, trial_feedback_name, member=member) if isinstance(trial_feedback_forum, discord.ForumChannel) else False
 
         trials_role = discord.utils.get(ctx.guild.roles, name='Trials')
         raiders_role = discord.utils.get(ctx.guild.roles, name='Raiders')
@@ -522,7 +742,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
         team_feedback_name = self._team_feedback_thread_name(member)
         team_feedback_forum = discord.utils.get(ctx.guild.channels, name='team_feedback')
-        deleted_team_feedback = await self._delete_forum_thread(team_feedback_forum, team_feedback_name) if isinstance(team_feedback_forum, discord.ForumChannel) else False
+        deleted_team_feedback = await self._delete_forum_thread(team_feedback_forum, team_feedback_name, member=member) if isinstance(team_feedback_forum, discord.ForumChannel) else False
 
         raiders_role = discord.utils.get(ctx.guild.roles, name='Raiders')
         not104_role = discord.utils.get(ctx.guild.roles, name='Not104')
@@ -550,9 +770,9 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         trial_feedback_forum = discord.utils.get(ctx.guild.channels, name='trial_feedback')
         team_feedback_forum = discord.utils.get(ctx.guild.channels, name='team_feedback')
 
-        deleted_trial_channel = await self._delete_channel(ctx.guild, trial_channel_name)
-        deleted_trial_feedback = await self._delete_forum_thread(trial_feedback_forum, trial_feedback_name) if isinstance(trial_feedback_forum, discord.ForumChannel) else False
-        deleted_team_feedback = await self._delete_forum_thread(team_feedback_forum, team_feedback_name) if isinstance(team_feedback_forum, discord.ForumChannel) else False
+        deleted_trial_channel = await self._delete_channel(ctx.guild, trial_channel_name, member=member)
+        deleted_trial_feedback = await self._delete_forum_thread(trial_feedback_forum, trial_feedback_name, member=member) if isinstance(trial_feedback_forum, discord.ForumChannel) else False
+        deleted_team_feedback = await self._delete_forum_thread(team_feedback_forum, team_feedback_name, member=member) if isinstance(team_feedback_forum, discord.ForumChannel) else False
 
         roles_to_remove = [role for role in member.roles if role != ctx.guild.default_role]
         roles_removed = False
