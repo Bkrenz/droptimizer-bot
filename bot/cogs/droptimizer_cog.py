@@ -90,14 +90,55 @@ def _feedback_nag_message(member_mention: str) -> str:
 
 def _detect_thread_owner_from_history(messages, bot_id: int):
     for message in messages:
-        if getattr(message.author, 'id', None) == bot_id:
-            if getattr(message, 'mentions', None):
-                return message.mentions[0].id
+        if not _is_real_thread_post(message):
             continue
-        if getattr(message.author, 'bot', False):
+        if getattr(message.author, 'id', None) != bot_id:
+            if not getattr(message.author, 'bot', False):
+                return getattr(message.author, 'id', None)
             continue
-        return getattr(message.author, 'id', None)
+        for user in getattr(message, 'mentions', []):
+            if getattr(user, 'id', None) != bot_id:
+                return user.id
     return None
+
+
+def _is_real_thread_post(message) -> bool:
+    message_type = getattr(message, 'type', None)
+    if message_type is None:
+        return True
+    type_name = getattr(message_type, 'name', str(message_type).rsplit('.', 1)[-1])
+    return type_name in {'default', 'reply', 'thread_starter_message'}
+
+
+def _has_recent_owner_post(messages, member_id: int, now: datetime.datetime) -> bool:
+    latest_post = None
+    for message in messages:
+        if not _is_real_thread_post(message):
+            continue
+        if getattr(getattr(message, 'author', None), 'id', None) != member_id:
+            continue
+        created_at = getattr(message, 'created_at', None)
+        if created_at is None:
+            continue
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=ET)
+        else:
+            created_at = created_at.astimezone(ET)
+        if latest_post is None or created_at > latest_post:
+            latest_post = created_at
+    return latest_post is not None and now - latest_post < datetime.timedelta(days=7)
+
+
+def _next_feedback_nag_time_et(now: datetime.datetime | None = None) -> datetime.datetime:
+    if now is None:
+        now = datetime.datetime.now(ET)
+    elif now.tzinfo is None:
+        now = now.replace(tzinfo=ET)
+
+    next_run = now.replace(hour=12, minute=0, second=0, microsecond=0)
+    if now > next_run:
+        next_run += datetime.timedelta(days=1)
+    return next_run
 
 
 class DroptimizerCog(commands.Cog, name='Droptimizer'):
@@ -481,23 +522,45 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         if thread is None:
             return None
 
+        starter = await self._get_thread_starter_message(thread)
+        member = self._member_mentioned_in_message(thread, starter)
+        if member is not None:
+            return member
+
         try:
             async for message in thread.history(limit=50, oldest_first=True):
-                if message.author.id == self.bot.user.id:
-                    if getattr(message, 'mentions', None):
-                        for user in message.mentions:
-                            if user.id != self.bot.user.id:
-                                return thread.guild.get_member(user.id) or user
+                if not _is_real_thread_post(message):
                     continue
                 if getattr(message.author, 'bot', False):
+                    member = self._member_mentioned_in_message(thread, message)
+                    if member is not None:
+                        return member
                     continue
                 return thread.guild.get_member(message.author.id) or message.author
         except Exception:
             pass
 
-        starter = await self._get_thread_starter_message(thread)
-        if starter is not None and starter.author.id != self.bot.user.id:
-            return thread.guild.get_member(starter.author.id) or starter.author
+        return None
+
+    def _member_mentioned_in_message(self, thread: discord.Thread, message):
+        if message is None:
+            return None
+
+        bot_id = getattr(getattr(self.bot, 'user', None), 'id', None)
+        for user in getattr(message, 'mentions', []):
+            if getattr(user, 'id', None) == bot_id:
+                continue
+            member = thread.guild.get_member(user.id)
+            if member is not None:
+                return member
+
+        content = getattr(message, 'content', '') or ''
+        for user_id in re.findall(r'<@!?(\d+)>', content):
+            if int(user_id) == bot_id:
+                continue
+            member = thread.guild.get_member(int(user_id))
+            if member is not None:
+                return member
         return None
 
     async def _send_weekly_feedback_nag(self, thread: discord.Thread):
@@ -513,18 +576,12 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         if last_sent is not None and now - last_sent < datetime.timedelta(days=7):
             return
 
-        recent_post = False
         try:
-            async for message in thread.history(limit=50, oldest_first=False):
-                if message.author.id != member.id:
-                    continue
-                if now - message.created_at.replace(tzinfo=ET) < datetime.timedelta(days=7):
-                    recent_post = True
-                    break
+            messages = [message async for message in thread.history(limit=None, oldest_first=False)]
         except Exception:
-            recent_post = False
+            messages = []
 
-        if recent_post:
+        if _has_recent_owner_post(messages, member.id, now):
             return
 
         try:
@@ -552,7 +609,9 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             except Exception:
                 pass
 
-            await asyncio.sleep(3600)
+            now = datetime.datetime.now(ET)
+            next_run = _next_feedback_nag_time_et(now)
+            await asyncio.sleep(max(0, (next_run - now).total_seconds()))
 
     @commands.slash_command(description='Create the wipefest forum and resources post.')
     @commands.has_permissions(manage_channels=True)
