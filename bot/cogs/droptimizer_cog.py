@@ -597,21 +597,22 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             pass
 
         while True:
+            now = datetime.datetime.now(ET)
+            next_run = _next_feedback_nag_time_et(now)
+            await asyncio.sleep(max(0, (next_run - now).total_seconds()))
             try:
                 for guild in self.bot.guilds:
                     forum = discord.utils.get(guild.channels, name='team_feedback')
                     if not isinstance(forum, discord.ForumChannel):
                         continue
                     for thread in list(forum.threads):
+                        if thread.name.casefold() == 'general feedback':
+                            continue
                         await self._send_weekly_feedback_nag(thread)
             except asyncio.CancelledError:
                 return
             except Exception:
                 pass
-
-            now = datetime.datetime.now(ET)
-            next_run = _next_feedback_nag_time_et(now)
-            await asyncio.sleep(max(0, (next_run - now).total_seconds()))
 
     @commands.slash_command(description='Create the wipefest forum and resources post.')
     @commands.has_permissions(manage_channels=True)
