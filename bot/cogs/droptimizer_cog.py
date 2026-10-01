@@ -141,6 +141,15 @@ def _next_feedback_nag_time_et(now: datetime.datetime | None = None) -> datetime
     return next_run
 
 
+def _get_team_feedback_forum(guild: discord.Guild):
+    raid_category = discord.utils.get(guild.categories, name='Raid Things')
+    if raid_category is None:
+        return None
+
+    forum = discord.utils.get(raid_category.channels, name='team_feedback')
+    return forum if isinstance(forum, discord.ForumChannel) else None
+
+
 class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
     def __init__(self, bot):
@@ -602,11 +611,11 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             await asyncio.sleep(max(0, (next_run - now).total_seconds()))
             try:
                 for guild in self.bot.guilds:
-                    forum = discord.utils.get(guild.channels, name='team_feedback')
-                    if not isinstance(forum, discord.ForumChannel):
+                    forum = _get_team_feedback_forum(guild)
+                    if forum is None:
                         continue
                     for thread in list(forum.threads):
-                        if thread.name.casefold() == 'general feedback':
+                        if thread.archived or thread.name.casefold() == 'general feedback':
                             continue
                         await self._send_weekly_feedback_nag(thread)
             except asyncio.CancelledError:
