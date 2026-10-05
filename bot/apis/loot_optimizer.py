@@ -110,7 +110,12 @@ def get_boss_item_needs(character_wishlist: dict, boss_name: str) -> dict[str, s
     return needs
 
 
-def get_boss_item_upgrade_scores(character_wishlist: dict, boss_name: str) -> dict[str, float]:
+def _get_boss_item_scores(
+    character_wishlist: dict,
+    boss_name: str,
+    wish_metric: str,
+    score_metric: str,
+) -> dict[str, float]:
     scores = {}
     normalized_boss = boss_name.strip().casefold()
 
@@ -128,20 +133,22 @@ def get_boss_item_upgrade_scores(character_wishlist: dict, boss_name: str) -> di
                     if item_id is None:
                         continue
 
-                    scores_by_spec = item.get('score_by_spec') or {}
-                    wished_specs = {
-                        wish.get('specialization', '').casefold()
-                        for wish in item.get('wishes', [])
-                        if wish.get('specialization')
-                    }
+                    wishes = item.get('wishes') or []
                     matching_scores = [
-                        score.get('percentage')
-                        for specialization, score in scores_by_spec.items()
-                        if specialization.casefold() in wished_specs and isinstance(score, dict)
+                        wish.get(wish_metric)
+                        for wish in wishes
+                        if wish.get('specialization')
                     ]
-                    if not matching_scores and not wished_specs:
+                    scores_by_spec = item.get('score_by_spec') or {}
+                    if not matching_scores:
                         matching_scores = [
-                            score.get('percentage')
+                            score.get(score_metric)
+                            for specialization, score in scores_by_spec.items()
+                            if isinstance(score, dict)
+                        ]
+                    if not matching_scores:
+                        matching_scores = [
+                            score.get(score_metric)
                             for score in scores_by_spec.values()
                             if isinstance(score, dict)
                         ]
@@ -159,24 +166,40 @@ def get_boss_item_upgrade_scores(character_wishlist: dict, boss_name: str) -> di
     return scores
 
 
+def get_boss_item_upgrade_scores(character_wishlist: dict, boss_name: str) -> dict[str, float]:
+    return _get_boss_item_scores(character_wishlist, boss_name, 'percentage', 'percentage')
+
+
+def get_boss_item_raw_scores(character_wishlist: dict, boss_name: str) -> dict[str, float]:
+    return _get_boss_item_scores(character_wishlist, boss_name, 'absolute', 'score')
+
+
 def format_roster_recommendation_rows(
     selected: list[str],
     roles_by_character: dict[str, str],
     needs_by_character: dict[str, dict[str, str]],
     upgrade_scores_by_character: dict[str, dict[str, float]] | None = None,
     allocated_items_by_character: dict[str, list[str]] | None = None,
+    raw_scores_by_character: dict[str, dict[str, float]] | None = None,
 ) -> list[str]:
     rows = []
     for name in selected:
         role = roles_by_character.get(name, 'unclassified').title()
         item_scores = (upgrade_scores_by_character or {}).get(name, {})
+        raw_scores = (raw_scores_by_character or {}).get(name, {})
         allocated_item_ids = (allocated_items_by_character or {}).get(name, [])
         loot_items = []
         allocated_items = needs_by_character.get(name, {})
         for item_id in allocated_item_ids:
             item_name = allocated_items.get(str(item_id), str(item_id))
             score = item_scores.get(str(item_id))
-            item_label = f'{item_name} (+{score:.2f}%)' if score is not None else item_name
+            raw_score = raw_scores.get(str(item_id))
+            if score is not None and raw_score is not None:
+                item_label = f'{item_name} (+{score:.4f}%, +{raw_score:,.2f} raw)'
+            elif score is not None:
+                item_label = f'{item_name} (+{score:.4f}%)'
+            else:
+                item_label = item_name
             item_label += ' [allocated]'
             loot_items.append(item_label)
         loot_needs = ', '.join(loot_items) or 'No items allocated'

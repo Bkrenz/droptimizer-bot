@@ -37,7 +37,7 @@ from ..models.discord.saved_channels import SavedChannel
 from ..models.discord.deprioritized_character import DeprioritizedCharacter
 from ..apis.raidbots import RaidBots
 from ..apis.wowaudit import WowAudit
-from ..apis.loot_optimizer import MAX_ROSTER_SIZE, MYTHIC_DIFFICULTY, ROLE_QUOTAS, format_roster_recommendation_rows, get_boss_item_needs, get_boss_item_upgrade_scores, get_character_role, recommend_roster_with_allocations
+from ..apis.loot_optimizer import MAX_ROSTER_SIZE, MYTHIC_DIFFICULTY, ROLE_QUOTAS, format_roster_recommendation_rows, get_boss_item_needs, get_boss_item_raw_scores, get_boss_item_upgrade_scores, get_character_role, recommend_roster_with_allocations
 
 ET = ZoneInfo('America/New_York')
 FEEDBACK_NAG_TOPIC_MARKER = '[mistbot-feedback-nags:{status}]'
@@ -435,13 +435,15 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             details_by_id = await WowAudit.get_character_wishlists(list(names_by_id))
             needs_by_character = {}
             upgrade_scores_by_character = {}
+            upgrade_percentages_by_character = {}
             roles_by_character = {}
             available_bosses = set()
 
             for character_id, detail in details_by_id.items():
                 character_name = names_by_id[character_id]
                 needs_by_character[character_name] = get_boss_item_needs(detail, boss_name)
-                upgrade_scores_by_character[character_name] = get_boss_item_upgrade_scores(detail, boss_name)
+                upgrade_scores_by_character[character_name] = get_boss_item_raw_scores(detail, boss_name)
+                upgrade_percentages_by_character[character_name] = get_boss_item_upgrade_scores(detail, boss_name)
                 character_role = get_character_role(roster_by_id.get(character_id, {}))
                 character_role = character_role or get_character_role(records_by_id[character_id]) or get_character_role(detail)
                 if character_role is None and isinstance(detail.get('character'), dict):
@@ -489,8 +491,9 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
                 selected,
                 roles_by_character,
                 needs_by_character,
-                upgrade_scores_by_character,
+                upgrade_percentages_by_character,
                 allocated_items_by_character,
+                upgrade_scores_by_character,
             )
             field_header = 'Player | Role | Loot needs'
             field_rows = []
