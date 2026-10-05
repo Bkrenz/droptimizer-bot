@@ -37,7 +37,7 @@ from ..models.discord.saved_channels import SavedChannel
 from ..models.discord.deprioritized_character import DeprioritizedCharacter
 from ..apis.raidbots import RaidBots
 from ..apis.wowaudit import WowAudit
-from ..apis.loot_optimizer import MAX_ROSTER_SIZE, MYTHIC_DIFFICULTY, ROLE_QUOTAS, format_roster_recommendation_rows, get_boss_item_needs, get_boss_item_upgrade_scores, get_character_role, recommend_roster
+from ..apis.loot_optimizer import MAX_ROSTER_SIZE, MYTHIC_DIFFICULTY, ROLE_QUOTAS, format_roster_recommendation_rows, get_boss_item_needs, get_boss_item_upgrade_scores, get_character_role, recommend_roster_with_allocations
 
 ET = ZoneInfo('America/New_York')
 FEEDBACK_NAG_TOPIC_MARKER = '[mistbot-feedback-nags:{status}]'
@@ -466,7 +466,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             self._boss_names_cache = sorted(available_bosses, key=str.casefold)
             self._boss_names_cache_at = asyncio.get_running_loop().time()
             deprioritized = DeprioritizedCharacter.get_for_guild(ctx.guild.id)
-            selected, excluded = recommend_roster(
+            selected, excluded, allocated_items_by_character = recommend_roster_with_allocations(
                 candidate_names,
                 needs_by_character,
                 deprioritized,
@@ -491,6 +491,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
                 roles_by_character,
                 needs_by_character,
                 upgrade_scores_by_character,
+                allocated_items_by_character,
             )
             field_header = 'Player | Role | Loot needs'
             field_rows = []

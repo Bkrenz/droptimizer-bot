@@ -164,18 +164,245 @@ def format_roster_recommendation_rows(
     roles_by_character: dict[str, str],
     needs_by_character: dict[str, dict[str, str]],
     upgrade_scores_by_character: dict[str, dict[str, float]] | None = None,
+    allocated_items_by_character: dict[str, str] | None = None,
 ) -> list[str]:
     rows = []
     for name in selected:
         role = roles_by_character.get(name, 'unclassified').title()
         item_scores = (upgrade_scores_by_character or {}).get(name, {})
+        allocated_item_ids = {
+            str(item_id) for item_id in (allocated_items_by_character or {}).get(name, [])
+        }
         loot_items = []
-        for item_id, item_name in needs_by_character.get(name, {}).items():
+        items = list(needs_by_character.get(name, {}).items())
+        items.sort(key=lambda item: -item_scores.get(str(item[0]), 0.0))
+        for item_id, item_name in items:
             score = item_scores.get(str(item_id))
-            loot_items.append(f'{item_name} (+{score:.2f}%)' if score is not None else item_name)
+            item_label = f'{item_name} (+{score:.2f}%)' if score is not None else item_name
+            if str(item_id) in allocated_item_ids:
+                item_label += ' [allocated]'
+            loot_items.append(item_label)
         loot_needs = ', '.join(loot_items) or 'No upgrades'
         rows.append(f'{name} | {role} | {loot_needs}')
     return rows
+
+
+def recommend_roster_with_allocations(
+    candidate_names: list[str],
+    needs_by_character: dict[str, dict[str, str]],
+    deprioritized: set[str],
+    *,
+    max_needing_item: int = 2,
+    roles_by_character: dict[str, str] | None = None,
+    upgrade_scores_by_character: dict[str, dict[str, float]] | None = None,
+) -> tuple[list[str], dict[str, list[str]], dict[str, list[str]]]:
+    deprioritized_names = {name.casefold() for name in deprioritized}
+    needs_by_normalized_name = {
+        name.casefold(): {str(item_id): item_name for item_id, item_name in needs.items()}
+        for name, needs in needs_by_character.items()
+    }
+    ordered_names = sorted(
+        candidate_names,
+        key=lambda name: (name.casefold() in deprioritized_names, candidate_names.index(name)),
+    )
+    role_quotas = ROLE_QUOTAS if roles_by_character is not None else {'unassigned': MAX_ROSTER_SIZE}
+    roles_by_normalized_name = {
+        name.casefold(): role.casefold()
+        for name, role in (roles_by_character or {}).items()
+    }
+    for name in ordered_names:
+        roles_by_normalized_name.setdefault(name.casefold(), 'unassigned')
+    upgrade_scores_by_normalized_name = {
+        name.casefold(): {
+            str(item_id): float(score)
+            for item_id, score in scores.items()
+            if isinstance(score, (int, float)) and not isinstance(score, bool)
+        }
+        for name, scores in (upgrade_scores_by_character or {}).items()
+    }
+    upgrade_score_by_name = {}
+    item_counts_by_candidate = {}
+    for name in ordered_names:
+        role = roles_by_normalized_name[name.casefold()]
+        if role not in role_quotas:
+            continue
+        needs = needs_by_normalized_name.get(name.casefold(), {})
+        item_counts_by_candidate[name.casefold()] = needs
+        upgrade_score_by_name[name.casefold()] = sum(
+            upgrade_scores_by_normalized_name.get(name.casefold(), {}).get(item_id, 0.0)
+            for item_id in needs
+        )
+
+    selected = []
+    role_counts = {role: 0 for role in role_quotas}
+    item_counts = {}
+    roster_item_limit = MAX_ROSTER_SIZE
+    best_names = []
+    best_role_score = tuple(0 for _ in role_quotas)
+    best_upgrade_score = float('-inf')
+    best_deprioritized_count = len(ordered_names) + 1
+    best_order_indexes = ()
+
+    def is_better(selected_names: list[str], deprioritized_count: int) -> bool:
+        nonlocal best_names, best_role_score, best_upgrade_score
+        nonlocal best_deprioritized_count, best_order_indexes
+        role_score = tuple(role_counts[role] for role in role_quotas)
+        scores_by_item = {}
+        for name in selected_names:
+            for item_id in needs_by_normalized_name.get(name.casefold(), {}):
+                score = upgrade_scores_by_normalized_name.get(name.casefold(), {}).get(item_id, 0.0)
+                scores_by_item.setdefault(item_id, []).append(score)
+        upgrade_score = sum(
+            sum(sorted(scores, reverse=True)[:max_needing_item])
+            for scores in scores_by_item.values()
+        )
+        order_indexes = tuple(ordered_names.index(name) for name in selected_names)
+        if (
+            len(selected_names) > len(best_names)
+            or (len(selected_names) == len(best_names) and role_score > best_role_score)
+            or (
+                len(selected_names) == len(best_names)
+                and role_score == best_role_score
+                and upgrade_score > best_upgrade_score
+            )
+            or (
+                len(selected_names) == len(best_names)
+                and role_score == best_role_score
+                and upgrade_score == best_upgrade_score
+                and deprioritized_count < best_deprioritized_count
+            )
+            or (
+                len(selected_names) == len(best_names)
+                and role_score == best_role_score
+                and upgrade_score == best_upgrade_score
+                and deprioritized_count == best_deprioritized_count
+                and order_indexes < best_order_indexes
+            )
+        ):
+            best_names = selected_names.copy()
+            best_role_score = role_score
+            best_upgrade_score = upgrade_score
+            best_deprioritized_count = deprioritized_count
+            best_order_indexes = order_indexes
+            return True
+        return False
+
+    all_item_counts = {}
+    for needs in item_counts_by_candidate.values():
+        for item_id in needs:
+            all_item_counts[item_id] = all_item_counts.get(item_id, 0) + 1
+
+    if all(count <= max_needing_item for count in all_item_counts.values()):
+        for role in role_quotas:
+            role_candidates = [
+                name for name in ordered_names
+                if roles_by_normalized_name.get(name.casefold()) == role
+            ]
+            role_candidates.sort(key=lambda name: (
+                -upgrade_score_by_name[name.casefold()],
+                name.casefold() in deprioritized_names,
+                ordered_names.index(name),
+            ))
+            selected.extend(role_candidates[:role_quotas[role]])
+            role_counts[role] = min(len(role_candidates), role_quotas[role])
+        selected.sort(key=lambda name: ordered_names.index(name))
+        is_better(selected, sum(name.casefold() in deprioritized_names for name in selected))
+    else:
+        def search(index: int, deprioritized_count: int) -> None:
+            remaining_by_role = {role: 0 for role in role_quotas}
+            remaining_names_by_role = {role: [] for role in role_quotas}
+            for name in ordered_names[index:]:
+                role = roles_by_normalized_name.get(name.casefold(), 'unassigned')
+                if role in remaining_by_role:
+                    remaining_by_role[role] += 1
+                    remaining_names_by_role[role].append(name)
+            possible_size = len(selected) + sum(
+                min(role_quotas[role] - role_counts[role], remaining_by_role[role])
+                for role in role_quotas
+            )
+            possible_role_score = tuple(
+                min(role_quotas[role], role_counts[role] + remaining_by_role[role])
+                for role in role_quotas
+            )
+            if possible_size < len(best_names):
+                return
+            if possible_size == len(best_names) and possible_role_score < best_role_score:
+                return
+            if possible_size == len(best_names) and possible_role_score == best_role_score:
+                possible_scores_by_item = {}
+                for name in selected + ordered_names[index:]:
+                    for item_id in item_counts_by_candidate.get(name.casefold(), {}):
+                        possible_scores_by_item.setdefault(item_id, []).append(
+                            upgrade_scores_by_normalized_name.get(name.casefold(), {}).get(item_id, 0.0)
+                        )
+                possible_upgrade_score = sum(
+                    sum(sorted(scores, reverse=True)[:max_needing_item])
+                    for scores in possible_scores_by_item.values()
+                )
+                if possible_upgrade_score < best_upgrade_score:
+                    return
+                if possible_upgrade_score == best_upgrade_score and deprioritized_count > best_deprioritized_count:
+                    return
+            if index == len(ordered_names) or len(selected) == MAX_ROSTER_SIZE:
+                is_better(selected, deprioritized_count)
+                return
+
+            name = ordered_names[index]
+            role = roles_by_normalized_name.get(name.casefold(), 'unassigned')
+            needs = item_counts_by_candidate.get(name.casefold())
+            if (
+                needs is not None
+                and role_counts[role] < role_quotas[role]
+                and all(item_counts.get(item_id, 0) < roster_item_limit for item_id in needs)
+            ):
+                selected.append(name)
+                role_counts[role] += 1
+                for item_id in needs:
+                    item_counts[item_id] = item_counts.get(item_id, 0) + 1
+                search(index + 1, deprioritized_count + (name.casefold() in deprioritized_names))
+                selected.pop()
+                role_counts[role] -= 1
+                for item_id in needs:
+                    item_counts[item_id] -= 1
+
+            search(index + 1, deprioritized_count)
+
+        search(0, 0)
+
+    selected = best_names
+    selected_set = {name.casefold() for name in selected}
+    excluded = {}
+    for name in candidate_names:
+        if name.casefold() in selected_set:
+            continue
+        excluded[name] = []
+
+    item_priority_score = {}
+    item_first_seen = {}
+    for name in selected:
+        for item_id in needs_by_normalized_name.get(name.casefold(), {}):
+            item_first_seen.setdefault(item_id, len(item_first_seen))
+            score = upgrade_scores_by_normalized_name.get(name.casefold(), {}).get(item_id, 0.0)
+            item_priority_score[item_id] = max(item_priority_score.get(item_id, 0.0), score)
+    ordered_items = sorted(
+        item_priority_score,
+        key=lambda item_id: (-item_priority_score[item_id], item_first_seen[item_id]),
+    )
+    allocated_items_by_character: dict[str, list[str]] = {}
+    for item_id in ordered_items:
+        eligible = [
+            name for name in selected
+            if item_id in needs_by_normalized_name.get(name.casefold(), {})
+        ]
+        eligible.sort(key=lambda name: (
+            -upgrade_scores_by_normalized_name.get(name.casefold(), {}).get(item_id, 0.0),
+            name.casefold() in deprioritized_names,
+            selected.index(name),
+        ))
+        for name in eligible[:max_needing_item]:
+            allocated_items_by_character.setdefault(name, []).append(item_id)
+
+    return selected, excluded, allocated_items_by_character
 
 
 def recommend_roster(
@@ -187,177 +414,12 @@ def recommend_roster(
     roles_by_character: dict[str, str] | None = None,
     upgrade_scores_by_character: dict[str, dict[str, float]] | None = None,
 ) -> tuple[list[str], dict[str, list[str]]]:
-    deprioritized_names = {name.casefold() for name in deprioritized}
-    needs_by_normalized_name = {
-        name.casefold(): needs for name, needs in needs_by_character.items()
-    }
-    ordered_names = sorted(
+    selected, excluded, _ = recommend_roster_with_allocations(
         candidate_names,
-        key=lambda name: (name.casefold() in deprioritized_names, candidate_names.index(name)),
+        needs_by_character,
+        deprioritized,
+        max_needing_item=max_needing_item,
+        roles_by_character=roles_by_character,
+        upgrade_scores_by_character=upgrade_scores_by_character,
     )
-    role_quotas = ROLE_QUOTAS if roles_by_character is not None else {'unassigned': MAX_ROSTER_SIZE}
-    roles_by_normalized_name = {
-        name.casefold(): role.casefold() for name, role in (roles_by_character or {}).items()
-    }
-    upgrade_scores_by_normalized_name = {
-        name.casefold(): {str(item_id): score for item_id, score in scores.items()}
-        for name, scores in (upgrade_scores_by_character or {}).items()
-    }
-    upgrade_score_by_name = {
-        name.casefold(): sum(
-            upgrade_scores_by_normalized_name.get(name.casefold(), {}).get(str(item_id), 0.0)
-            for item_id in needs_by_normalized_name.get(name.casefold(), {})
-        )
-        for name in ordered_names
-    }
-    order_indexes = {name.casefold(): index for index, name in enumerate(ordered_names)}
-    selected = []
-    item_counts = {}
-    role_counts = {role: 0 for role in role_quotas}
-    best_names = []
-    best_deprioritized_count = len(ordered_names) + 1
-    best_role_score = tuple(0 for _ in role_quotas)
-    best_upgrade_score = float('-inf')
-    best_order_indexes = ()
-
-    all_candidate_item_counts = {}
-    for name in ordered_names:
-        role = roles_by_normalized_name.get(name.casefold(), 'unassigned')
-        if role not in role_quotas:
-            continue
-        for item_id in needs_by_normalized_name.get(name.casefold(), {}):
-            all_candidate_item_counts[item_id] = all_candidate_item_counts.get(item_id, 0) + 1
-
-    if all(count <= max_needing_item for count in all_candidate_item_counts.values()):
-        for role in role_quotas:
-            role_candidates = [
-                name for name in ordered_names
-                if roles_by_normalized_name.get(name.casefold(), 'unassigned') == role
-            ]
-            role_candidates.sort(key=lambda name: (
-                -upgrade_score_by_name[name.casefold()],
-                name.casefold() in deprioritized_names,
-                order_indexes[name.casefold()],
-            ))
-            best_names.extend(role_candidates[:role_quotas[role]])
-            role_counts[role] = min(len(role_candidates), role_quotas[role])
-        best_names.sort(key=lambda name: order_indexes[name.casefold()])
-        best_deprioritized_count = sum(name.casefold() in deprioritized_names for name in best_names)
-        best_role_score = tuple(role_counts[role] for role in role_quotas)
-        best_upgrade_score = sum(upgrade_score_by_name[name.casefold()] for name in best_names)
-        best_order_indexes = tuple(order_indexes[name.casefold()] for name in best_names)
-
-    def search(index: int, deprioritized_count: int) -> None:
-        nonlocal best_names, best_deprioritized_count, best_role_score, best_upgrade_score, best_order_indexes
-        remaining_by_role = {role: 0 for role in role_quotas}
-        for remaining_name in ordered_names[index:]:
-            role = roles_by_normalized_name.get(remaining_name.casefold(), 'unassigned')
-            if role in remaining_by_role:
-                remaining_by_role[role] += 1
-        possible_size = len(selected) + sum(
-            min(role_quotas[role] - role_counts[role], remaining_by_role[role])
-            for role in role_quotas
-        )
-        possible_role_score = tuple(
-            min(role_quotas[role], role_counts[role] + remaining_by_role[role])
-            for role in role_quotas
-        )
-        possible_upgrade_score = sum(
-            upgrade_score_by_name[name.casefold()] for name in selected
-        )
-        remaining_upgrade_scores = {role: [] for role in role_quotas}
-        for remaining_name in ordered_names[index:]:
-            role = roles_by_normalized_name.get(remaining_name.casefold(), 'unassigned')
-            if role in remaining_upgrade_scores:
-                remaining_upgrade_scores[role].append(upgrade_score_by_name[remaining_name.casefold()])
-        for role, scores in remaining_upgrade_scores.items():
-            open_slots = role_quotas[role] - role_counts[role]
-            possible_upgrade_score += sum(sorted(scores, reverse=True)[:open_slots])
-        if possible_size < len(best_names):
-            return
-        if possible_size == len(best_names) and possible_role_score < best_role_score:
-            return
-        if (
-            possible_size == len(best_names)
-            and possible_role_score == best_role_score
-            and possible_upgrade_score < best_upgrade_score
-        ):
-            return
-        if (
-            possible_size == len(best_names)
-            and possible_role_score == best_role_score
-            and possible_upgrade_score == best_upgrade_score
-            and deprioritized_count > best_deprioritized_count
-        ):
-            return
-        if index == len(ordered_names) or len(selected) == MAX_ROSTER_SIZE:
-            selected_indexes = tuple(order_indexes[name.casefold()] for name in selected)
-            selected_role_score = tuple(role_counts[role] for role in role_quotas)
-            selected_upgrade_score = sum(upgrade_score_by_name[name.casefold()] for name in selected)
-            if (
-                len(selected) > len(best_names)
-                or (len(selected) == len(best_names) and selected_role_score > best_role_score)
-                or (
-                    len(selected) == len(best_names)
-                    and selected_role_score == best_role_score
-                    and selected_upgrade_score > best_upgrade_score
-                )
-                or (
-                    len(selected) == len(best_names)
-                    and selected_role_score == best_role_score
-                    and selected_upgrade_score == best_upgrade_score
-                    and deprioritized_count < best_deprioritized_count
-                )
-                or (
-                    len(selected) == len(best_names)
-                    and selected_role_score == best_role_score
-                    and selected_upgrade_score == best_upgrade_score
-                    and deprioritized_count == best_deprioritized_count
-                    and selected_indexes < best_order_indexes
-                )
-            ):
-                best_names = selected.copy()
-                best_deprioritized_count = deprioritized_count
-                best_role_score = selected_role_score
-                best_upgrade_score = selected_upgrade_score
-                best_order_indexes = selected_indexes
-            return
-
-        name = ordered_names[index]
-        needs = needs_by_normalized_name.get(name.casefold(), {})
-        role = roles_by_normalized_name.get(name.casefold(), 'unassigned')
-        if (
-            role in role_quotas
-            and role_counts[role] < role_quotas[role]
-            and all(item_counts.get(item_id, 0) < max_needing_item for item_id in needs)
-        ):
-            selected.append(name)
-            role_counts[role] += 1
-            for item_id in needs:
-                item_counts[item_id] = item_counts.get(item_id, 0) + 1
-            search(index + 1, deprioritized_count + (name.casefold() in deprioritized_names))
-            selected.pop()
-            role_counts[role] -= 1
-            for item_id in needs:
-                item_counts[item_id] -= 1
-
-        search(index + 1, deprioritized_count)
-
-    if any(count > max_needing_item for count in all_candidate_item_counts.values()):
-        role_counts = {role: 0 for role in role_quotas}
-        search(0, 0)
-    selected_set = {name.casefold() for name in best_names}
-    best_item_counts = {}
-    for name in best_names:
-        for item_id in needs_by_normalized_name.get(name.casefold(), {}):
-            best_item_counts[item_id] = best_item_counts.get(item_id, 0) + 1
-
-    excluded = {}
-    for name in candidate_names:
-        if name.casefold() in selected_set:
-            continue
-        needs = needs_by_normalized_name.get(name.casefold(), {})
-        blocked_items = [item_id for item_id in needs if best_item_counts.get(item_id, 0) >= max_needing_item]
-        excluded[name] = [needs[item_id] for item_id in blocked_items]
-
-    return best_names, excluded
+    return selected, excluded
