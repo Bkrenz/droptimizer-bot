@@ -110,15 +110,70 @@ def get_boss_item_needs(character_wishlist: dict, boss_name: str) -> dict[str, s
     return needs
 
 
+def get_boss_item_upgrade_scores(character_wishlist: dict, boss_name: str) -> dict[str, float]:
+    scores = {}
+    normalized_boss = boss_name.strip().casefold()
+
+    for instance in character_wishlist.get('instances', []):
+        for difficulty_entry in instance.get('difficulties', []):
+            if difficulty_entry.get('difficulty', '').casefold() != MYTHIC_DIFFICULTY.casefold():
+                continue
+
+            wishlist = difficulty_entry.get('wishlist') or {}
+            for encounter in wishlist.get('encounters', []):
+                if encounter.get('name', '').strip().casefold() != normalized_boss:
+                    continue
+                for item in encounter.get('items', []):
+                    item_id = item.get('id')
+                    if item_id is None:
+                        continue
+
+                    scores_by_spec = item.get('score_by_spec') or {}
+                    wished_specs = {
+                        wish.get('specialization', '').casefold()
+                        for wish in item.get('wishes', [])
+                        if wish.get('specialization')
+                    }
+                    matching_scores = [
+                        score.get('percentage')
+                        for specialization, score in scores_by_spec.items()
+                        if specialization.casefold() in wished_specs and isinstance(score, dict)
+                    ]
+                    if not matching_scores and not wished_specs:
+                        matching_scores = [
+                            score.get('percentage')
+                            for score in scores_by_spec.values()
+                            if isinstance(score, dict)
+                        ]
+                    percentages = [
+                        float(score) for score in matching_scores
+                        if isinstance(score, (int, float)) and not isinstance(score, bool)
+                    ]
+                    if percentages:
+                        normalized_item_id = str(item_id)
+                        scores[normalized_item_id] = max(
+                            scores.get(normalized_item_id, 0.0),
+                            max(percentages),
+                        )
+
+    return scores
+
+
 def format_roster_recommendation_rows(
     selected: list[str],
     roles_by_character: dict[str, str],
     needs_by_character: dict[str, dict[str, str]],
+    upgrade_scores_by_character: dict[str, dict[str, float]] | None = None,
 ) -> list[str]:
     rows = []
     for name in selected:
         role = roles_by_character.get(name, 'unclassified').title()
-        loot_needs = ', '.join(needs_by_character.get(name, {}).values()) or 'No upgrades'
+        item_scores = (upgrade_scores_by_character or {}).get(name, {})
+        loot_items = []
+        for item_id, item_name in needs_by_character.get(name, {}).items():
+            score = item_scores.get(str(item_id))
+            loot_items.append(f'{item_name} (+{score:.2f}%)' if score is not None else item_name)
+        loot_needs = ', '.join(loot_items) or 'No upgrades'
         rows.append(f'{name} | {role} | {loot_needs}')
     return rows
 
@@ -130,6 +185,7 @@ def recommend_roster(
     *,
     max_needing_item: int = 2,
     roles_by_character: dict[str, str] | None = None,
+    upgrade_scores_by_character: dict[str, dict[str, float]] | None = None,
 ) -> tuple[list[str], dict[str, list[str]]]:
     deprioritized_names = {name.casefold() for name in deprioritized}
     needs_by_normalized_name = {
@@ -143,6 +199,17 @@ def recommend_roster(
     roles_by_normalized_name = {
         name.casefold(): role.casefold() for name, role in (roles_by_character or {}).items()
     }
+    upgrade_scores_by_normalized_name = {
+        name.casefold(): {str(item_id): score for item_id, score in scores.items()}
+        for name, scores in (upgrade_scores_by_character or {}).items()
+    }
+    upgrade_score_by_name = {
+        name.casefold(): sum(
+            upgrade_scores_by_normalized_name.get(name.casefold(), {}).get(str(item_id), 0.0)
+            for item_id in needs_by_normalized_name.get(name.casefold(), {})
+        )
+        for name in ordered_names
+    }
     order_indexes = {name.casefold(): index for index, name in enumerate(ordered_names)}
     selected = []
     item_counts = {}
@@ -150,6 +217,7 @@ def recommend_roster(
     best_names = []
     best_deprioritized_count = len(ordered_names) + 1
     best_role_score = tuple(0 for _ in role_quotas)
+    best_upgrade_score = float('-inf')
     best_order_indexes = ()
 
     all_candidate_item_counts = {}
@@ -161,17 +229,26 @@ def recommend_roster(
             all_candidate_item_counts[item_id] = all_candidate_item_counts.get(item_id, 0) + 1
 
     if all(count <= max_needing_item for count in all_candidate_item_counts.values()):
-        for name in ordered_names:
-            role = roles_by_normalized_name.get(name.casefold(), 'unassigned')
-            if role in role_quotas and role_counts[role] < role_quotas[role]:
-                best_names.append(name)
-                role_counts[role] += 1
+        for role in role_quotas:
+            role_candidates = [
+                name for name in ordered_names
+                if roles_by_normalized_name.get(name.casefold(), 'unassigned') == role
+            ]
+            role_candidates.sort(key=lambda name: (
+                -upgrade_score_by_name[name.casefold()],
+                name.casefold() in deprioritized_names,
+                order_indexes[name.casefold()],
+            ))
+            best_names.extend(role_candidates[:role_quotas[role]])
+            role_counts[role] = min(len(role_candidates), role_quotas[role])
+        best_names.sort(key=lambda name: order_indexes[name.casefold()])
         best_deprioritized_count = sum(name.casefold() in deprioritized_names for name in best_names)
         best_role_score = tuple(role_counts[role] for role in role_quotas)
+        best_upgrade_score = sum(upgrade_score_by_name[name.casefold()] for name in best_names)
         best_order_indexes = tuple(order_indexes[name.casefold()] for name in best_names)
 
     def search(index: int, deprioritized_count: int) -> None:
-        nonlocal best_names, best_deprioritized_count, best_role_score, best_order_indexes
+        nonlocal best_names, best_deprioritized_count, best_role_score, best_upgrade_score, best_order_indexes
         remaining_by_role = {role: 0 for role in role_quotas}
         for remaining_name in ordered_names[index:]:
             role = roles_by_normalized_name.get(remaining_name.casefold(), 'unassigned')
@@ -185,6 +262,17 @@ def recommend_roster(
             min(role_quotas[role], role_counts[role] + remaining_by_role[role])
             for role in role_quotas
         )
+        possible_upgrade_score = sum(
+            upgrade_score_by_name[name.casefold()] for name in selected
+        )
+        remaining_upgrade_scores = {role: [] for role in role_quotas}
+        for remaining_name in ordered_names[index:]:
+            role = roles_by_normalized_name.get(remaining_name.casefold(), 'unassigned')
+            if role in remaining_upgrade_scores:
+                remaining_upgrade_scores[role].append(upgrade_score_by_name[remaining_name.casefold()])
+        for role, scores in remaining_upgrade_scores.items():
+            open_slots = role_quotas[role] - role_counts[role]
+            possible_upgrade_score += sum(sorted(scores, reverse=True)[:open_slots])
         if possible_size < len(best_names):
             return
         if possible_size == len(best_names) and possible_role_score < best_role_score:
@@ -192,23 +280,38 @@ def recommend_roster(
         if (
             possible_size == len(best_names)
             and possible_role_score == best_role_score
+            and possible_upgrade_score < best_upgrade_score
+        ):
+            return
+        if (
+            possible_size == len(best_names)
+            and possible_role_score == best_role_score
+            and possible_upgrade_score == best_upgrade_score
             and deprioritized_count > best_deprioritized_count
         ):
             return
         if index == len(ordered_names) or len(selected) == MAX_ROSTER_SIZE:
             selected_indexes = tuple(order_indexes[name.casefold()] for name in selected)
             selected_role_score = tuple(role_counts[role] for role in role_quotas)
+            selected_upgrade_score = sum(upgrade_score_by_name[name.casefold()] for name in selected)
             if (
                 len(selected) > len(best_names)
                 or (len(selected) == len(best_names) and selected_role_score > best_role_score)
                 or (
                     len(selected) == len(best_names)
                     and selected_role_score == best_role_score
+                    and selected_upgrade_score > best_upgrade_score
+                )
+                or (
+                    len(selected) == len(best_names)
+                    and selected_role_score == best_role_score
+                    and selected_upgrade_score == best_upgrade_score
                     and deprioritized_count < best_deprioritized_count
                 )
                 or (
                     len(selected) == len(best_names)
                     and selected_role_score == best_role_score
+                    and selected_upgrade_score == best_upgrade_score
                     and deprioritized_count == best_deprioritized_count
                     and selected_indexes < best_order_indexes
                 )
@@ -216,6 +319,7 @@ def recommend_roster(
                 best_names = selected.copy()
                 best_deprioritized_count = deprioritized_count
                 best_role_score = selected_role_score
+                best_upgrade_score = selected_upgrade_score
                 best_order_indexes = selected_indexes
             return
 
