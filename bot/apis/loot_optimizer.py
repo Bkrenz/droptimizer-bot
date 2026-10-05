@@ -136,6 +136,7 @@ def recommend_roster(
     role_counts = {role: 0 for role in role_quotas}
     best_names = []
     best_deprioritized_count = len(ordered_names) + 1
+    best_role_score = tuple(0 for _ in role_quotas)
     best_order_indexes = ()
 
     all_candidate_item_counts = {}
@@ -153,10 +154,11 @@ def recommend_roster(
                 best_names.append(name)
                 role_counts[role] += 1
         best_deprioritized_count = sum(name.casefold() in deprioritized_names for name in best_names)
+        best_role_score = tuple(role_counts[role] for role in role_quotas)
         best_order_indexes = tuple(order_indexes[name.casefold()] for name in best_names)
 
     def search(index: int, deprioritized_count: int) -> None:
-        nonlocal best_names, best_deprioritized_count, best_order_indexes
+        nonlocal best_names, best_deprioritized_count, best_role_score, best_order_indexes
         remaining_by_role = {role: 0 for role in role_quotas}
         for remaining_name in ordered_names[index:]:
             role = roles_by_normalized_name.get(remaining_name.casefold(), 'unassigned')
@@ -166,24 +168,41 @@ def recommend_roster(
             min(role_quotas[role] - role_counts[role], remaining_by_role[role])
             for role in role_quotas
         )
-        if possible_size < len(best_names) or (
+        possible_role_score = tuple(
+            min(role_quotas[role], role_counts[role] + remaining_by_role[role])
+            for role in role_quotas
+        )
+        if possible_size < len(best_names):
+            return
+        if possible_size == len(best_names) and possible_role_score < best_role_score:
+            return
+        if (
             possible_size == len(best_names)
-            and deprioritized_count >= best_deprioritized_count
+            and possible_role_score == best_role_score
+            and deprioritized_count > best_deprioritized_count
         ):
             return
         if index == len(ordered_names) or len(selected) == MAX_ROSTER_SIZE:
             selected_indexes = tuple(order_indexes[name.casefold()] for name in selected)
+            selected_role_score = tuple(role_counts[role] for role in role_quotas)
             if (
                 len(selected) > len(best_names)
-                or (len(selected) == len(best_names) and deprioritized_count < best_deprioritized_count)
+                or (len(selected) == len(best_names) and selected_role_score > best_role_score)
                 or (
                     len(selected) == len(best_names)
+                    and selected_role_score == best_role_score
+                    and deprioritized_count < best_deprioritized_count
+                )
+                or (
+                    len(selected) == len(best_names)
+                    and selected_role_score == best_role_score
                     and deprioritized_count == best_deprioritized_count
                     and selected_indexes < best_order_indexes
                 )
             ):
                 best_names = selected.copy()
                 best_deprioritized_count = deprioritized_count
+                best_role_score = selected_role_score
                 best_order_indexes = selected_indexes
             return
 
