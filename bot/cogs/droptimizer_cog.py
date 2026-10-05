@@ -37,7 +37,7 @@ from ..models.discord.saved_channels import SavedChannel
 from ..models.discord.deprioritized_character import DeprioritizedCharacter
 from ..apis.raidbots import RaidBots
 from ..apis.wowaudit import WowAudit
-from ..apis.loot_optimizer import MAX_ROSTER_SIZE, MYTHIC_DIFFICULTY, ROLE_QUOTAS, get_boss_item_needs, get_character_role, recommend_roster
+from ..apis.loot_optimizer import MAX_ROSTER_SIZE, MYTHIC_DIFFICULTY, ROLE_QUOTAS, format_roster_recommendation_rows, get_boss_item_needs, get_character_role, recommend_roster
 
 ET = ZoneInfo('America/New_York')
 FEEDBACK_NAG_TOPIC_MARKER = '[mistbot-feedback-nags:{status}]'
@@ -483,10 +483,31 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
                 for role, target in ROLE_QUOTAS.items()
             )
             result.description = f'Mythic | {len(selected)}/{MAX_ROSTER_SIZE} selected from {len(candidate_names)} WoWAudit characters | {role_summary}'
-            for role, title in (('tank', 'Tanks'), ('healer', 'Healers'), ('damage', 'DPS')):
+            recommendation_rows = format_roster_recommendation_rows(
+                selected,
+                roles_by_character,
+                needs_by_character,
+            )
+            field_header = 'Player | Role | Loot needs'
+            field_rows = []
+            field_index = 1
+            for row in recommendation_rows:
+                candidate_rows = field_rows + [row]
+                candidate_value = f'{field_header}\n' + '\n'.join(candidate_rows)
+                if len(candidate_value) > 1024 and field_rows:
+                    result.add_field(
+                        name='Recommended' if field_index == 1 else f'Recommended (continued {field_index})',
+                        value=f'{field_header}\n' + '\n'.join(field_rows),
+                        inline=False,
+                    )
+                    field_rows = [row]
+                    field_index += 1
+                else:
+                    field_rows = candidate_rows
+            if field_rows:
                 result.add_field(
-                    name=f'{title} ({len(selected_by_role[role])}/{ROLE_QUOTAS[role]})',
-                    value=', '.join(selected_by_role[role]) or 'None',
+                    name='Recommended' if field_index == 1 else f'Recommended (continued {field_index})',
+                    value=f'{field_header}\n' + '\n'.join(field_rows),
                     inline=False,
                 )
             if selected_deprioritized:

@@ -110,6 +110,19 @@ def get_boss_item_needs(character_wishlist: dict, boss_name: str) -> dict[str, s
     return needs
 
 
+def format_roster_recommendation_rows(
+    selected: list[str],
+    roles_by_character: dict[str, str],
+    needs_by_character: dict[str, dict[str, str]],
+) -> list[str]:
+    rows = []
+    for name in selected:
+        role = roles_by_character.get(name, 'unclassified').title()
+        loot_needs = ', '.join(needs_by_character.get(name, {}).values()) or 'No upgrades'
+        rows.append(f'{name} | {role} | {loot_needs}')
+    return rows
+
+
 def recommend_roster(
     candidate_names: list[str],
     needs_by_character: dict[str, dict[str, str]],
