@@ -177,7 +177,7 @@ def _has_recent_owner_post(messages, member_id: int, now: datetime.datetime) -> 
             created_at = created_at.astimezone(ET)
         if latest_post is None or created_at > latest_post:
             latest_post = created_at
-    return latest_post is not None and now - latest_post < datetime.timedelta(days=7)
+    return latest_post is not None and now - latest_post < datetime.timedelta(days=10)
 
 
 def _next_feedback_nag_time_et(now: datetime.datetime | None = None) -> datetime.datetime:
@@ -842,7 +842,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
         now = datetime.datetime.now(ET)
         last_sent = self._weekly_nag_sent.get(thread.id)
-        if last_sent is not None and now - last_sent < datetime.timedelta(days=7):
+        if last_sent is not None and now - last_sent < datetime.timedelta(days=3):
             return
 
         try:
