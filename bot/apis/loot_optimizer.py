@@ -1,3 +1,6 @@
+import re
+
+
 MYTHIC_DIFFICULTY = 'Mythic'
 ROLE_QUOTAS = {'tank': 2, 'healer': 4, 'damage': 14}
 MAX_ROSTER_SIZE = sum(ROLE_QUOTAS.values())
@@ -9,35 +12,68 @@ SPEC_ROLES = {
     'survival': 'damage', 'arcane': 'damage', 'fire': 'damage', 'frost': 'damage', 'unholy': 'damage',
     'havoc': 'damage', 'feral': 'damage', 'balance': 'damage', 'outlaw': 'damage', 'subtlety': 'damage',
     'assassination': 'damage', 'windwalker': 'damage', 'retribution': 'damage', 'elemental': 'damage',
-    'enhancement': 'damage', 'shadow': 'damage', 'demonology': 'damage', 'destruction': 'damage',
+    'enhancement': 'damage', 'shadow': 'damage', 'affliction': 'damage', 'demonology': 'damage',
+    'destruction': 'damage', 'devourer': 'damage',
     'fury': 'damage', 'arms': 'damage',
 }
 
 
-def get_character_role(character: dict) -> str | None:
-    role = character.get('role')
-    if isinstance(role, dict):
-        role = role.get('name') or role.get('role')
-    if isinstance(role, str):
-        normalized_role = role.strip().casefold()
-        if 'tank' in normalized_role:
-            return 'tank'
-        if 'heal' in normalized_role:
-            return 'healer'
-        if 'damage' in normalized_role or 'dps' in normalized_role:
-            return 'damage'
+def _iter_payload_objects(value):
+    if isinstance(value, dict):
+        yield value
+        for nested_value in value.values():
+            yield from _iter_payload_objects(nested_value)
+    elif isinstance(value, list):
+        for nested_value in value:
+            yield from _iter_payload_objects(nested_value)
 
-    specialization = character.get('specialization') or character.get('spec') or ''
-    if isinstance(specialization, dict):
-        specialization = specialization.get('name', '')
-    normalized_spec = str(specialization).strip().casefold()
+
+def _iter_labels(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for key in ('name', 'label', 'role', 'spec', 'specialization', 'display_name'):
+            if key in value:
+                yield from _iter_labels(value[key])
+    elif isinstance(value, list):
+        for nested_value in value:
+            yield from _iter_labels(nested_value)
+
+
+def _role_from_label(value: str) -> str | None:
+    normalized_role = value.strip().casefold()
+    if 'tank' in normalized_role:
+        return 'tank'
+    if 'heal' in normalized_role:
+        return 'healer'
+    if 'damage' in normalized_role or 'dps' in normalized_role:
+        return 'damage'
+    return None
+
+
+def _specialization_role(value: str) -> str | None:
+    normalized_spec = re.sub(r'[^a-z]+', ' ', value.casefold()).strip()
+    padded_spec = f' {normalized_spec} '
     for spec_name, spec_role in SPEC_ROLES.items():
-        if (
-            normalized_spec == spec_name
-            or normalized_spec.startswith(f'{spec_name} ')
-            or normalized_spec.endswith(f' {spec_name}')
-        ):
+        if f' {spec_name} ' in padded_spec:
             return spec_role
+    return None
+
+
+def get_character_role(character: dict) -> str | None:
+    for payload_object in _iter_payload_objects(character):
+        for key, value in payload_object.items():
+            normalized_key = key.casefold()
+            if normalized_key in ('role', 'role_name', 'primary_role') or normalized_key.endswith('_role'):
+                for label in _iter_labels(value):
+                    role = _role_from_label(label)
+                    if role is not None:
+                        return role
+            if any(part in normalized_key for part in ('spec', 'specialization', 'specialisation')):
+                for label in _iter_labels(value):
+                    role = _specialization_role(label)
+                    if role is not None:
+                        return role
     return None
 
 
