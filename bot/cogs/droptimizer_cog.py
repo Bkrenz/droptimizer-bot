@@ -34,10 +34,27 @@ except ImportError:
 from sqlalchemy import delete, select
 
 from ..models.discord.saved_channels import SavedChannel
+from ..models.discord.deprioritized_character import DeprioritizedCharacter
 from ..apis.raidbots import RaidBots
 from ..apis.wowaudit import WowAudit
+from ..apis.loot_optimizer import MAX_ROSTER_SIZE, MYTHIC_DIFFICULTY, get_boss_item_needs, parse_character_names, recommend_roster
 
 ET = ZoneInfo('America/New_York')
+FEEDBACK_NAG_TOPIC_MARKER = '[mistbot-feedback-nags:{status}]'
+
+
+def _feedback_nags_enabled(topic: str | None) -> bool:
+    if topic is None:
+        return True
+    match = re.search(r'^\[mistbot-feedback-nags:(on|off)\]$', topic, re.MULTILINE)
+    return match is None or match.group(1) == 'on'
+
+
+def _feedback_nag_topic(topic: str | None, enabled: bool) -> str:
+    topic = topic or ''
+    topic = re.sub(r'\n?\[mistbot-feedback-nags:(?:on|off)\]$', '', topic).rstrip()
+    marker = FEEDBACK_NAG_TOPIC_MARKER.format(status='on' if enabled else 'off')
+    return f'{topic}\n{marker}' if topic else marker
 
 
 def _feedback_nag_message(member_mention: str) -> str:
@@ -257,6 +274,119 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
     droptimizer = SlashCommandGroup('droptimizer', 'Droptimizer Commands')
     dropadmin = droptimizer.create_subgroup('admin', 'Droptimizer Administrative Commands')
+    loot = SlashCommandGroup('loot', 'Loot roster optimization commands')
+
+    @loot.command(name='deprioritize', description='Deprioritize a WoWAudit character in loot roster recommendations.')
+    @commands.has_permissions(manage_roles=True)
+    async def deprioritize_character(self, ctx: commands.Context, character_name: str):
+        if ctx.guild is None:
+            await ctx.respond('This command must be run in a guild.', ephemeral=True)
+            return
+
+        added = DeprioritizedCharacter.add(ctx.guild.id, character_name)
+        if added:
+            await ctx.respond(f'{character_name} will be considered after other candidates.', ephemeral=True)
+        else:
+            await ctx.respond(f'{character_name} is already deprioritized.', ephemeral=True)
+
+    @loot.command(name='prioritize', description='Remove a character from the deprioritized list.')
+    @commands.has_permissions(manage_roles=True)
+    async def prioritize_character(self, ctx: commands.Context, character_name: str):
+        if ctx.guild is None:
+            await ctx.respond('This command must be run in a guild.', ephemeral=True)
+            return
+
+        removed = DeprioritizedCharacter.remove(ctx.guild.id, character_name)
+        if removed:
+            await ctx.respond(f'{character_name} is no longer deprioritized.', ephemeral=True)
+        else:
+            await ctx.respond(f'{character_name} was not on the deprioritized list.', ephemeral=True)
+
+    @loot.command(name='deprioritized', description='Show characters currently deprioritized for this guild.')
+    @commands.has_permissions(manage_roles=True)
+    async def list_deprioritized_characters(self, ctx: commands.Context):
+        if ctx.guild is None:
+            await ctx.respond('This command must be run in a guild.', ephemeral=True)
+            return
+
+        names = sorted(DeprioritizedCharacter.get_for_guild(ctx.guild.id))
+        message = ', '.join(names) if names else 'No characters are deprioritized.'
+        await ctx.respond(message, ephemeral=True)
+
+    @loot.command(name='optimize', description='Recommend candidates for a boss while limiting item needs to two players.')
+    @commands.has_permissions(manage_roles=True)
+    async def optimize_loot(self, ctx: commands.Context, boss_name: str, characters: str):
+        if ctx.guild is None:
+            await ctx.respond('This command must be run in a guild.', ephemeral=True)
+            return
+
+        candidate_names = parse_character_names(characters)
+        if not candidate_names:
+            await ctx.respond('Enter comma-separated WoWAudit character names.', ephemeral=True)
+            return
+
+        await ctx.defer(ephemeral=True)
+        try:
+            overview = await WowAudit.get_wishlist_overview()
+            characters_by_name = {}
+            for character in overview.get('characters', []):
+                name = character.get('name', '')
+                characters_by_name.setdefault(name.casefold(), []).append(character)
+
+            missing_names = [name for name in candidate_names if not characters_by_name.get(name.casefold())]
+            ambiguous_names = [name for name in candidate_names if len(characters_by_name.get(name.casefold(), [])) > 1]
+            if missing_names or ambiguous_names:
+                errors = []
+                if missing_names:
+                    errors.append(f'Not found in WoWAudit: {", ".join(missing_names)}')
+                if ambiguous_names:
+                    errors.append(f'Names match multiple characters: {", ".join(ambiguous_names)}')
+                await ctx.followup.send('\n'.join(errors), ephemeral=True)
+                return
+
+            roster_records = [characters_by_name[name.casefold()][0] for name in candidate_names]
+            details_by_id = await WowAudit.get_character_wishlists([character['id'] for character in roster_records])
+            names_by_id = {character['id']: character['name'] for character in roster_records}
+            needs_by_character = {}
+            available_bosses = set()
+
+            for character_id, detail in details_by_id.items():
+                character_name = names_by_id[character_id]
+                needs_by_character[character_name] = get_boss_item_needs(detail, boss_name)
+                for instance in detail.get('instances', []):
+                    for difficulty_entry in instance.get('difficulties', []):
+                        if difficulty_entry.get('difficulty', '').casefold() != MYTHIC_DIFFICULTY.casefold():
+                            continue
+                        wishlist = difficulty_entry.get('wishlist') or {}
+                        available_bosses.update(
+                            encounter.get('name', '') for encounter in wishlist.get('encounters', [])
+                            if encounter.get('name')
+                        )
+
+            if not any(name.casefold() == boss_name.strip().casefold() for name in available_bosses):
+                available = ', '.join(sorted(available_bosses)) or 'none found in Mythic wishlists'
+                await ctx.followup.send(f'Boss `{boss_name}` was not found in Mythic wishlists. Available: {available}', ephemeral=True)
+                return
+
+            deprioritized = DeprioritizedCharacter.get_for_guild(ctx.guild.id)
+            selected, excluded = recommend_roster(candidate_names, needs_by_character, deprioritized)
+            selected_deprioritized = [name for name in selected if name.casefold() in deprioritized]
+
+            result = Embed(title=f'{boss_name} Roster Recommendation', color=0x00a86b)
+            result.description = f'Mythic | {len(selected)} selected, maximum {MAX_ROSTER_SIZE} from {len(candidate_names)} candidates'
+            result.add_field(name='Recommended', value=', '.join(selected) or 'None', inline=False)
+            if selected_deprioritized:
+                result.add_field(name='Deprioritized but retained', value=', '.join(selected_deprioritized), inline=False)
+            if excluded:
+                exclusion_text = '\n'.join(
+                    f'{name}: item cap ({", ".join(item_names)})' if item_names
+                    else f'{name}: 20-player roster cap'
+                    for name, item_names in excluded.items()
+                )
+                result.add_field(name='Not selected', value=exclusion_text[:1024], inline=False)
+            await ctx.followup.send(embed=result, ephemeral=True)
+        except Exception:
+            await ctx.followup.send('Could not retrieve or process the WoWAudit wishlists. Check the API configuration and try again.', ephemeral=True)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -612,7 +742,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             try:
                 for guild in self.bot.guilds:
                     forum = _get_team_feedback_forum(guild)
-                    if forum is None:
+                    if forum is None or not _feedback_nags_enabled(forum.topic):
                         continue
                     for thread in list(forum.threads):
                         if thread.archived or thread.name.casefold() == 'general feedback':
@@ -622,6 +752,27 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
                 return
             except Exception:
                 pass
+
+    @commands.slash_command(description='Start or stop weekly team feedback reminders for this season.')
+    @commands.has_permissions(manage_channels=True)
+    async def feedback_nags(self, ctx: commands.Context, enabled: bool):
+        if ctx.guild is None:
+            await ctx.respond('This command must be run in a guild.', ephemeral=True)
+            return
+
+        forum = _get_team_feedback_forum(ctx.guild)
+        if forum is None:
+            await ctx.respond('Could not find the `team_feedback` forum in `Raid Things`.', ephemeral=True)
+            return
+
+        try:
+            await forum.edit(topic=_feedback_nag_topic(forum.topic, enabled))
+        except discord.Forbidden:
+            await ctx.respond('Bot does not have permission to update the team feedback forum.', ephemeral=True)
+            return
+
+        state = 'started' if enabled else 'stopped'
+        await ctx.respond(f'Weekly team feedback reminders {state}.')
 
     @commands.slash_command(description='Create the wipefest forum and resources post.')
     @commands.has_permissions(manage_channels=True)

@@ -4,6 +4,7 @@ import asyncio
 import logging
 import requests
 import aiohttp
+from pathlib import Path
 from ..embeds.raidbots_embed import RaidbotsEmbed
 from ..embeds.qe_live_embed import QELiveEmbed
 
@@ -18,12 +19,58 @@ class WowAudit:
     wowaudit_credentials = os.getenv('WOW_AUDIT_CREDENTIALS')
 
     @staticmethod
+    def _authorization_header():
+        credentials = WowAudit.wowaudit_credentials or os.getenv('WOW_AUDIT_CREDENTIALS')
+        if not credentials:
+            credential_path = Path(__file__).resolve().parents[2] / 'resources' / 'WOW_AUDIT_CREDENTIALS'
+            if credential_path.is_file():
+                credentials = credential_path.read_text(encoding='utf-8').strip()
+                if credentials.startswith('WOW_AUDIT_CREDENTIALS='):
+                    credentials = credentials.split('=', 1)[1].strip().strip('"').strip("'")
+
+        if not credentials:
+            raise RuntimeError('WoWAudit credentials are not configured.')
+        if not credentials.lower().startswith('bearer '):
+            credentials = f'Bearer {credentials}'
+        return credentials
+
+    @staticmethod
+    async def get_wishlist_overview():
+        headers = {
+            'accept': 'application/json',
+            'Authorization': WowAudit._authorization_header(),
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.get(WOW_AUDIT_URL, headers=headers) as response:
+                response.raise_for_status()
+                return await response.json()
+
+    @staticmethod
+    async def get_character_wishlists(character_ids: list[int]):
+        headers = {
+            'accept': 'application/json',
+            'Authorization': WowAudit._authorization_header(),
+        }
+        semaphore = asyncio.Semaphore(5)
+
+        async with aiohttp.ClientSession() as session:
+            async def get_character_wishlist(character_id: int):
+                async with semaphore:
+                    url = f'{WOW_AUDIT_URL}/{character_id}'
+                    async with session.get(url, headers=headers) as response:
+                        response.raise_for_status()
+                        return await response.json()
+
+            wishlists = await asyncio.gather(*(get_character_wishlist(character_id) for character_id in character_ids))
+        return dict(zip(character_ids, wishlists))
+
+    @staticmethod
     async def upload_report(report_id):
         url = 'https://wowaudit.com/v1/wishlists'
 
         headers = {
             'accept': 'application/json',
-            'Authorization': WowAudit.wowaudit_credentials,
+            'Authorization': WowAudit._authorization_header(),
             'Content-Type': 'application/json'
         }
 
