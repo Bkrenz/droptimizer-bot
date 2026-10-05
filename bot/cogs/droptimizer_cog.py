@@ -37,10 +37,38 @@ from ..models.discord.saved_channels import SavedChannel
 from ..models.discord.deprioritized_character import DeprioritizedCharacter
 from ..apis.raidbots import RaidBots
 from ..apis.wowaudit import WowAudit
-from ..apis.loot_optimizer import MAX_ROSTER_SIZE, MYTHIC_DIFFICULTY, get_boss_item_needs, parse_character_names, recommend_roster
+from ..apis.loot_optimizer import MAX_ROSTER_SIZE, MYTHIC_DIFFICULTY, ROLE_QUOTAS, get_boss_item_needs, get_character_role, recommend_roster
 
 ET = ZoneInfo('America/New_York')
 FEEDBACK_NAG_TOPIC_MARKER = '[mistbot-feedback-nags:{status}]'
+BOSS_AUTOCOMPLETE_CACHE_SECONDS = 900
+
+
+async def _boss_name_autocomplete(context):
+    cog = getattr(context, 'cog', None)
+    if cog is None:
+        return []
+    try:
+        boss_names = await cog._get_available_bosses()
+    except Exception:
+        return []
+
+    query = (getattr(context, 'value', '') or '').casefold()
+    matches = [name for name in boss_names if query in name.casefold()]
+    option_choice = getattr(discord, 'OptionChoice', None)
+    if option_choice is not None:
+        return [option_choice(name=name, value=name) for name in matches[:25]]
+    return matches[:25]
+
+
+if hasattr(discord, 'Option'):
+    _BOSS_NAME_OPTION = discord.Option(
+        str,
+        description='Choose a boss from the current Mythic season',
+        autocomplete=_boss_name_autocomplete,
+    )
+else:
+    _BOSS_NAME_OPTION = str
 
 
 def _feedback_nags_enabled(topic: str | None) -> bool:
@@ -178,6 +206,9 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
     def __init__(self, bot):
         self.bot = bot
         self._weekly_nag_sent = {}
+        self._boss_names_cache = []
+        self._boss_names_cache_at = None
+        self._boss_names_cache_lock = asyncio.Lock()
         try:
             self._weekly_nag_task = self.bot.loop.create_task(self._weekly_feedback_nag_loop())
         except Exception:
@@ -186,6 +217,42 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
     def cog_unload(self):
         if getattr(self, '_weekly_nag_task', None):
             self._weekly_nag_task.cancel()
+
+    async def _get_available_bosses(self):
+        loop = asyncio.get_running_loop()
+        if (
+            self._boss_names_cache_at is not None
+            and loop.time() - self._boss_names_cache_at < BOSS_AUTOCOMPLETE_CACHE_SECONDS
+        ):
+            return self._boss_names_cache
+
+        async with self._boss_names_cache_lock:
+            if (
+                self._boss_names_cache_at is not None
+                and loop.time() - self._boss_names_cache_at < BOSS_AUTOCOMPLETE_CACHE_SECONDS
+            ):
+                return self._boss_names_cache
+            overview = await WowAudit.get_wishlist_overview()
+            character_ids = list(dict.fromkeys(
+                character.get('id') for character in overview.get('characters', [])
+                if character.get('id') is not None
+            ))
+            details_by_id = await WowAudit.get_character_wishlists(character_ids)
+            boss_names = set()
+            for detail in details_by_id.values():
+                for instance in detail.get('instances', []):
+                    for difficulty_entry in instance.get('difficulties', []):
+                        if difficulty_entry.get('difficulty', '').casefold() != MYTHIC_DIFFICULTY.casefold():
+                            continue
+                        wishlist = difficulty_entry.get('wishlist') or {}
+                        boss_names.update(
+                            encounter.get('name', '').strip()
+                            for encounter in wishlist.get('encounters', [])
+                            if encounter.get('name', '').strip()
+                        )
+            self._boss_names_cache = sorted(boss_names, key=str.casefold)
+            self._boss_names_cache_at = loop.time()
+            return self._boss_names_cache
 
     def _normalize_channel_name(self, name: str) -> str:
         normalized = name.lower().replace(' ', '-')
@@ -319,46 +386,61 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
         message = ', '.join(names) if names else 'No characters are deprioritized.'
         await ctx.respond(message, ephemeral=True)
 
-    @loot.command(name='optimize', description='Recommend candidates for a boss while limiting item needs to two players.')
+    @loot.command(name='optimize', description='Recommend a 2-tank, 4-healer, 14-DPS roster for a boss.')
     @commands.has_permissions(manage_roles=True)
-    async def optimize_loot(self, ctx: commands.Context, boss_name: str, characters: str):
+    async def optimize_loot(self, ctx: commands.Context, boss_name: _BOSS_NAME_OPTION):
         if ctx.guild is None:
             await ctx.respond('This command must be run in a guild.', ephemeral=True)
-            return
-
-        candidate_names = parse_character_names(characters)
-        if not candidate_names:
-            await ctx.respond('Enter comma-separated WoWAudit character names.', ephemeral=True)
             return
 
         await ctx.defer(ephemeral=True)
         try:
             overview = await WowAudit.get_wishlist_overview()
-            characters_by_name = {}
+            roster_records = []
+            seen_character_ids = set()
             for character in overview.get('characters', []):
-                name = character.get('name', '')
-                characters_by_name.setdefault(name.casefold(), []).append(character)
+                character_id = character.get('id')
+                if character_id is None or character_id in seen_character_ids or not character.get('name'):
+                    continue
+                roster_records.append(character)
+                seen_character_ids.add(character_id)
 
-            missing_names = [name for name in candidate_names if not characters_by_name.get(name.casefold())]
-            ambiguous_names = [name for name in candidate_names if len(characters_by_name.get(name.casefold(), [])) > 1]
-            if missing_names or ambiguous_names:
-                errors = []
-                if missing_names:
-                    errors.append(f'Not found in WoWAudit: {", ".join(missing_names)}')
-                if ambiguous_names:
-                    errors.append(f'Names match multiple characters: {", ".join(ambiguous_names)}')
-                await ctx.followup.send('\n'.join(errors), ephemeral=True)
+            if not roster_records:
+                await ctx.followup.send('No WoWAudit characters were found in the roster.', ephemeral=True)
                 return
 
-            roster_records = [characters_by_name[name.casefold()][0] for name in candidate_names]
-            details_by_id = await WowAudit.get_character_wishlists([character['id'] for character in roster_records])
-            names_by_id = {character['id']: character['name'] for character in roster_records}
+            name_counts = {}
+            for character in roster_records:
+                normalized_name = character['name'].strip().casefold()
+                name_counts[normalized_name] = name_counts.get(normalized_name, 0) + 1
+
+            names_by_id = {}
+            records_by_id = {}
+            for character in roster_records:
+                character_id = character['id']
+                name = character['name'].strip()
+                if name_counts[name.casefold()] > 1:
+                    realm = character.get('realm') or character.get('realm_name')
+                    if isinstance(realm, dict):
+                        realm = realm.get('name')
+                    name = f'{name} ({realm or character_id})'
+                names_by_id[character_id] = name
+                records_by_id[character_id] = character
+
+            candidate_names = list(names_by_id.values())
+            details_by_id = await WowAudit.get_character_wishlists(list(names_by_id))
             needs_by_character = {}
+            roles_by_character = {}
             available_bosses = set()
 
             for character_id, detail in details_by_id.items():
                 character_name = names_by_id[character_id]
                 needs_by_character[character_name] = get_boss_item_needs(detail, boss_name)
+                character_role = get_character_role(records_by_id[character_id]) or get_character_role(detail)
+                if character_role is None and isinstance(detail.get('character'), dict):
+                    character_role = get_character_role(detail['character'])
+                if character_role is not None:
+                    roles_by_character[character_name] = character_role
                 for instance in detail.get('instances', []):
                     for difficulty_entry in instance.get('difficulties', []):
                         if difficulty_entry.get('difficulty', '').casefold() != MYTHIC_DIFFICULTY.casefold():
@@ -374,21 +456,51 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
                 await ctx.followup.send(f'Boss `{boss_name}` was not found in Mythic wishlists. Available: {available}', ephemeral=True)
                 return
 
+            self._boss_names_cache = sorted(available_bosses, key=str.casefold)
+            self._boss_names_cache_at = asyncio.get_running_loop().time()
             deprioritized = DeprioritizedCharacter.get_for_guild(ctx.guild.id)
-            selected, excluded = recommend_roster(candidate_names, needs_by_character, deprioritized)
-            selected_deprioritized = [name for name in selected if name.casefold() in deprioritized]
+            selected, excluded = recommend_roster(
+                candidate_names,
+                needs_by_character,
+                deprioritized,
+                roles_by_character=roles_by_character,
+            )
+            deprioritized_normalized = {name.casefold() for name in deprioritized}
+            selected_deprioritized = [name for name in selected if name.casefold() in deprioritized_normalized]
+            selected_by_role = {
+                role: [name for name in selected if roles_by_character.get(name) == role]
+                for role in ROLE_QUOTAS
+            }
 
             result = Embed(title=f'{boss_name} Roster Recommendation', color=0x00a86b)
-            result.description = f'Mythic | {len(selected)} selected, maximum {MAX_ROSTER_SIZE} from {len(candidate_names)} candidates'
-            result.add_field(name='Recommended', value=', '.join(selected) or 'None', inline=False)
+            role_summary = ', '.join(
+                f'{len(selected_by_role[role])}/{target} {role}'
+                for role, target in ROLE_QUOTAS.items()
+            )
+            result.description = f'Mythic | {len(selected)}/{MAX_ROSTER_SIZE} selected from {len(candidate_names)} WoWAudit characters | {role_summary}'
+            for role, title in (('tank', 'Tanks'), ('healer', 'Healers'), ('damage', 'DPS')):
+                result.add_field(
+                    name=f'{title} ({len(selected_by_role[role])}/{ROLE_QUOTAS[role]})',
+                    value=', '.join(selected_by_role[role]) or 'None',
+                    inline=False,
+                )
             if selected_deprioritized:
                 result.add_field(name='Deprioritized but retained', value=', '.join(selected_deprioritized), inline=False)
             if excluded:
-                exclusion_text = '\n'.join(
-                    f'{name}: item cap ({", ".join(item_names)})' if item_names
-                    else f'{name}: 20-player roster cap'
-                    for name, item_names in excluded.items()
-                )
+                selected_role_counts = {role: len(selected_by_role[role]) for role in ROLE_QUOTAS}
+                exclusion_reasons = []
+                for name, item_names in excluded.items():
+                    role = roles_by_character.get(name)
+                    if role is None:
+                        reason = 'role unavailable in WoWAudit data'
+                    elif item_names:
+                        reason = f'item cap ({", ".join(item_names)})'
+                    elif selected_role_counts[role] >= ROLE_QUOTAS[role]:
+                        reason = f'{role} slots filled'
+                    else:
+                        reason = 'roster optimization'
+                    exclusion_reasons.append(f'{name}: {reason}')
+                exclusion_text = '\n'.join(exclusion_reasons)
                 result.add_field(name='Not selected', value=exclusion_text[:1024], inline=False)
             await ctx.followup.send(embed=result, ephemeral=True)
         except Exception:

@@ -1,5 +1,44 @@
 MYTHIC_DIFFICULTY = 'Mythic'
-MAX_ROSTER_SIZE = 20
+ROLE_QUOTAS = {'tank': 2, 'healer': 4, 'damage': 14}
+MAX_ROSTER_SIZE = sum(ROLE_QUOTAS.values())
+
+SPEC_ROLES = {
+    'blood': 'tank', 'vengeance': 'tank', 'guardian': 'tank', 'brewmaster': 'tank', 'protection': 'tank',
+    'discipline': 'healer', 'holy': 'healer', 'restoration': 'healer', 'mistweaver': 'healer', 'preservation': 'healer',
+    'devastation': 'damage', 'augmentation': 'damage', 'beast mastery': 'damage', 'marksmanship': 'damage',
+    'survival': 'damage', 'arcane': 'damage', 'fire': 'damage', 'frost': 'damage', 'unholy': 'damage',
+    'havoc': 'damage', 'feral': 'damage', 'balance': 'damage', 'outlaw': 'damage', 'subtlety': 'damage',
+    'assassination': 'damage', 'windwalker': 'damage', 'retribution': 'damage', 'elemental': 'damage',
+    'enhancement': 'damage', 'shadow': 'damage', 'demonology': 'damage', 'destruction': 'damage',
+    'fury': 'damage', 'arms': 'damage',
+}
+
+
+def get_character_role(character: dict) -> str | None:
+    role = character.get('role')
+    if isinstance(role, dict):
+        role = role.get('name') or role.get('role')
+    if isinstance(role, str):
+        normalized_role = role.strip().casefold()
+        if 'tank' in normalized_role:
+            return 'tank'
+        if 'heal' in normalized_role:
+            return 'healer'
+        if 'damage' in normalized_role or 'dps' in normalized_role:
+            return 'damage'
+
+    specialization = character.get('specialization') or character.get('spec') or ''
+    if isinstance(specialization, dict):
+        specialization = specialization.get('name', '')
+    normalized_spec = str(specialization).strip().casefold()
+    for spec_name, spec_role in SPEC_ROLES.items():
+        if (
+            normalized_spec == spec_name
+            or normalized_spec.startswith(f'{spec_name} ')
+            or normalized_spec.endswith(f' {spec_name}')
+        ):
+            return spec_role
+    return None
 
 
 def parse_character_names(value: str) -> list[str]:
@@ -41,6 +80,7 @@ def recommend_roster(
     deprioritized: set[str],
     *,
     max_needing_item: int = 2,
+    roles_by_character: dict[str, str] | None = None,
 ) -> tuple[list[str], dict[str, list[str]]]:
     deprioritized_names = {name.casefold() for name in deprioritized}
     needs_by_normalized_name = {
@@ -50,24 +90,50 @@ def recommend_roster(
         candidate_names,
         key=lambda name: (name.casefold() in deprioritized_names, candidate_names.index(name)),
     )
+    role_quotas = ROLE_QUOTAS if roles_by_character is not None else {'unassigned': MAX_ROSTER_SIZE}
+    roles_by_normalized_name = {
+        name.casefold(): role.casefold() for name, role in (roles_by_character or {}).items()
+    }
     order_indexes = {name.casefold(): index for index, name in enumerate(ordered_names)}
     selected = []
     item_counts = {}
+    role_counts = {role: 0 for role in role_quotas}
     best_names = []
     best_deprioritized_count = len(ordered_names) + 1
     best_order_indexes = ()
 
     all_candidate_item_counts = {}
     for name in ordered_names:
+        role = roles_by_normalized_name.get(name.casefold(), 'unassigned')
+        if role not in role_quotas:
+            continue
         for item_id in needs_by_normalized_name.get(name.casefold(), {}):
             all_candidate_item_counts[item_id] = all_candidate_item_counts.get(item_id, 0) + 1
 
     if all(count <= max_needing_item for count in all_candidate_item_counts.values()):
-        best_names = ordered_names[:MAX_ROSTER_SIZE]
+        for name in ordered_names:
+            role = roles_by_normalized_name.get(name.casefold(), 'unassigned')
+            if role in role_quotas and role_counts[role] < role_quotas[role]:
+                best_names.append(name)
+                role_counts[role] += 1
+        best_deprioritized_count = sum(name.casefold() in deprioritized_names for name in best_names)
+        best_order_indexes = tuple(order_indexes[name.casefold()] for name in best_names)
 
     def search(index: int, deprioritized_count: int) -> None:
         nonlocal best_names, best_deprioritized_count, best_order_indexes
-        if min(MAX_ROSTER_SIZE, len(selected) + len(ordered_names) - index) < len(best_names):
+        remaining_by_role = {role: 0 for role in role_quotas}
+        for remaining_name in ordered_names[index:]:
+            role = roles_by_normalized_name.get(remaining_name.casefold(), 'unassigned')
+            if role in remaining_by_role:
+                remaining_by_role[role] += 1
+        possible_size = len(selected) + sum(
+            min(role_quotas[role] - role_counts[role], remaining_by_role[role])
+            for role in role_quotas
+        )
+        if possible_size < len(best_names) or (
+            possible_size == len(best_names)
+            and deprioritized_count >= best_deprioritized_count
+        ):
             return
         if index == len(ordered_names) or len(selected) == MAX_ROSTER_SIZE:
             selected_indexes = tuple(order_indexes[name.casefold()] for name in selected)
@@ -87,18 +153,26 @@ def recommend_roster(
 
         name = ordered_names[index]
         needs = needs_by_normalized_name.get(name.casefold(), {})
-        if all(item_counts.get(item_id, 0) < max_needing_item for item_id in needs):
+        role = roles_by_normalized_name.get(name.casefold(), 'unassigned')
+        if (
+            role in role_quotas
+            and role_counts[role] < role_quotas[role]
+            and all(item_counts.get(item_id, 0) < max_needing_item for item_id in needs)
+        ):
             selected.append(name)
+            role_counts[role] += 1
             for item_id in needs:
                 item_counts[item_id] = item_counts.get(item_id, 0) + 1
             search(index + 1, deprioritized_count + (name.casefold() in deprioritized_names))
             selected.pop()
+            role_counts[role] -= 1
             for item_id in needs:
                 item_counts[item_id] -= 1
 
         search(index + 1, deprioritized_count)
 
     if any(count > max_needing_item for count in all_candidate_item_counts.values()):
+        role_counts = {role: 0 for role in role_quotas}
         search(0, 0)
     selected_set = {name.casefold() for name in best_names}
     best_item_counts = {}
