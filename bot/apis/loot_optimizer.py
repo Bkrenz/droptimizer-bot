@@ -164,25 +164,22 @@ def format_roster_recommendation_rows(
     roles_by_character: dict[str, str],
     needs_by_character: dict[str, dict[str, str]],
     upgrade_scores_by_character: dict[str, dict[str, float]] | None = None,
-    allocated_items_by_character: dict[str, str] | None = None,
+    allocated_items_by_character: dict[str, list[str]] | None = None,
 ) -> list[str]:
     rows = []
     for name in selected:
         role = roles_by_character.get(name, 'unclassified').title()
         item_scores = (upgrade_scores_by_character or {}).get(name, {})
-        allocated_item_ids = {
-            str(item_id) for item_id in (allocated_items_by_character or {}).get(name, [])
-        }
+        allocated_item_ids = (allocated_items_by_character or {}).get(name, [])
         loot_items = []
-        items = list(needs_by_character.get(name, {}).items())
-        items.sort(key=lambda item: -item_scores.get(str(item[0]), 0.0))
-        for item_id, item_name in items:
+        allocated_items = needs_by_character.get(name, {})
+        for item_id in allocated_item_ids:
+            item_name = allocated_items.get(str(item_id), str(item_id))
             score = item_scores.get(str(item_id))
             item_label = f'{item_name} (+{score:.2f}%)' if score is not None else item_name
-            if str(item_id) in allocated_item_ids:
-                item_label += ' [allocated]'
+            item_label += ' [allocated]'
             loot_items.append(item_label)
-        loot_needs = ', '.join(loot_items) or 'No upgrades'
+        loot_needs = ', '.join(loot_items) or 'No items allocated'
         rows.append(f'{name} | {role} | {loot_needs}')
     return rows
 
@@ -197,12 +194,13 @@ def recommend_roster_with_allocations(
     upgrade_scores_by_character: dict[str, dict[str, float]] | None = None,
 ) -> tuple[list[str], dict[str, list[str]], dict[str, list[str]]]:
     deprioritized_names = {name.casefold() for name in deprioritized}
+    candidate_names = list(candidate_names)
     needs_by_normalized_name = {
         name.casefold(): {str(item_id): item_name for item_id, item_name in needs.items()}
         for name, needs in needs_by_character.items()
     }
     ordered_names = sorted(
-        candidate_names,
+        (name for name in candidate_names if name.casefold() not in deprioritized_names),
         key=lambda name: (name.casefold() in deprioritized_names, candidate_names.index(name)),
     )
     role_quotas = ROLE_QUOTAS if roles_by_character is not None else {'unassigned': MAX_ROSTER_SIZE}

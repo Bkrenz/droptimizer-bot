@@ -349,7 +349,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
     dropadmin = droptimizer.create_subgroup('admin', 'Droptimizer Administrative Commands')
     loot = SlashCommandGroup('loot', 'Loot roster optimization commands')
 
-    @loot.command(name='deprioritize', description='Deprioritize a WoWAudit character in loot roster recommendations.')
+    @loot.command(name='deprioritize', description='Blacklist a WoWAudit character from roster recommendations.')
     @commands.has_permissions(manage_roles=True)
     async def deprioritize_character(self, ctx: commands.Context, character_name: str):
         if ctx.guild is None:
@@ -358,11 +358,11 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
         added = DeprioritizedCharacter.add(ctx.guild.id, character_name)
         if added:
-            await ctx.respond(f'{character_name} will be considered after other candidates.', ephemeral=True)
+            await ctx.respond(f'{character_name} is now blacklisted from roster recommendations.', ephemeral=True)
         else:
             await ctx.respond(f'{character_name} is already deprioritized.', ephemeral=True)
 
-    @loot.command(name='prioritize', description='Remove a character from the deprioritized list.')
+    @loot.command(name='prioritize', description='Remove a character from the roster blacklist.')
     @commands.has_permissions(manage_roles=True)
     async def prioritize_character(self, ctx: commands.Context, character_name: str):
         if ctx.guild is None:
@@ -371,11 +371,11 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
         removed = DeprioritizedCharacter.remove(ctx.guild.id, character_name)
         if removed:
-            await ctx.respond(f'{character_name} is no longer deprioritized.', ephemeral=True)
+            await ctx.respond(f'{character_name} is eligible for roster recommendations again.', ephemeral=True)
         else:
             await ctx.respond(f'{character_name} was not on the deprioritized list.', ephemeral=True)
 
-    @loot.command(name='deprioritized', description='Show characters currently deprioritized for this guild.')
+    @loot.command(name='deprioritized', description='Show characters blacklisted from roster recommendations.')
     @commands.has_permissions(manage_roles=True)
     async def list_deprioritized_characters(self, ctx: commands.Context):
         if ctx.guild is None:
@@ -383,7 +383,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             return
 
         names = sorted(DeprioritizedCharacter.get_for_guild(ctx.guild.id))
-        message = ', '.join(names) if names else 'No characters are deprioritized.'
+        message = ', '.join(names) if names else 'No characters are blacklisted.'
         await ctx.respond(message, ephemeral=True)
 
     @loot.command(name='optimize', description='Recommend a 2-tank, 4-healer, 14-DPS roster for a boss.')
@@ -473,8 +473,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
                 roles_by_character=roles_by_character,
                 upgrade_scores_by_character=upgrade_scores_by_character,
             )
-            deprioritized_normalized = {name.casefold() for name in deprioritized}
-            selected_deprioritized = [name for name in selected if name.casefold() in deprioritized_normalized]
+            blacklisted_normalized = {name.casefold() for name in deprioritized}
             selected_by_role = {
                 role: [name for name in selected if roles_by_character.get(name) == role]
                 for role in ROLE_QUOTAS
@@ -515,14 +514,14 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
                     value=f'{field_header}\n' + '\n'.join(field_rows),
                     inline=False,
                 )
-            if selected_deprioritized:
-                result.add_field(name='Deprioritized but retained', value=', '.join(selected_deprioritized), inline=False)
             if excluded:
                 selected_role_counts = {role: len(selected_by_role[role]) for role in ROLE_QUOTAS}
                 exclusion_reasons = []
                 for name, item_names in excluded.items():
                     role = roles_by_character.get(name)
-                    if role is None:
+                    if name.casefold() in blacklisted_normalized:
+                        reason = 'blacklisted'
+                    elif role is None:
                         reason = 'role unavailable in WoWAudit data'
                     elif item_names:
                         reason = f'item cap ({", ".join(item_names)})'
