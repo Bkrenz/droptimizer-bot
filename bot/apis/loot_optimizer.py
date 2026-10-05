@@ -178,32 +178,24 @@ def format_roster_recommendation_rows(
     selected: list[str],
     roles_by_character: dict[str, str],
     needs_by_character: dict[str, dict[str, str]],
-    upgrade_scores_by_character: dict[str, dict[str, float]] | None = None,
     allocated_items_by_character: dict[str, list[str]] | None = None,
     raw_scores_by_character: dict[str, dict[str, float]] | None = None,
 ) -> list[str]:
     rows = []
     for name in selected:
         role = roles_by_character.get(name, 'unclassified').title()
-        item_scores = (upgrade_scores_by_character or {}).get(name, {})
         raw_scores = (raw_scores_by_character or {}).get(name, {})
         allocated_item_ids = (allocated_items_by_character or {}).get(name, [])
         loot_items = []
         allocated_items = needs_by_character.get(name, {})
         for item_id in allocated_item_ids:
             item_name = allocated_items.get(str(item_id), str(item_id))
-            score = item_scores.get(str(item_id))
             raw_score = raw_scores.get(str(item_id))
-            if score is not None and raw_score is not None:
-                item_label = f'{item_name} (+{score:.4f}%, +{raw_score:,.2f} raw)'
-            elif score is not None:
-                item_label = f'{item_name} (+{score:.4f}%)'
-            else:
-                item_label = item_name
+            item_label = f'{item_name} (+{raw_score:,.2f})' if raw_score is not None else item_name
             item_label += ' [allocated]'
             loot_items.append(item_label)
         loot_needs = ', '.join(loot_items) or 'No items allocated'
-        rows.append(f'{name} | {role} | {loot_needs}')
+        rows.append(f'**{name}** | {role} | {loot_needs}')
     return rows
 
 

@@ -37,7 +37,7 @@ from ..models.discord.saved_channels import SavedChannel
 from ..models.discord.deprioritized_character import DeprioritizedCharacter
 from ..apis.raidbots import RaidBots
 from ..apis.wowaudit import WowAudit
-from ..apis.loot_optimizer import MAX_ROSTER_SIZE, MYTHIC_DIFFICULTY, ROLE_QUOTAS, format_roster_recommendation_rows, get_boss_item_needs, get_boss_item_raw_scores, get_boss_item_upgrade_scores, get_character_role, recommend_roster_with_allocations
+from ..apis.loot_optimizer import MAX_ROSTER_SIZE, MYTHIC_DIFFICULTY, ROLE_QUOTAS, format_roster_recommendation_rows, get_boss_item_needs, get_boss_item_raw_scores, get_character_role, recommend_roster_with_allocations
 
 ET = ZoneInfo('America/New_York')
 FEEDBACK_NAG_TOPIC_MARKER = '[mistbot-feedback-nags:{status}]'
@@ -435,7 +435,6 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             details_by_id = await WowAudit.get_character_wishlists(list(names_by_id))
             needs_by_character = {}
             upgrade_scores_by_character = {}
-            upgrade_percentages_by_character = {}
             roles_by_character = {}
             available_bosses = set()
 
@@ -443,7 +442,6 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
                 character_name = names_by_id[character_id]
                 needs_by_character[character_name] = get_boss_item_needs(detail, boss_name)
                 upgrade_scores_by_character[character_name] = get_boss_item_raw_scores(detail, boss_name)
-                upgrade_percentages_by_character[character_name] = get_boss_item_upgrade_scores(detail, boss_name)
                 character_role = get_character_role(roster_by_id.get(character_id, {}))
                 character_role = character_role or get_character_role(records_by_id[character_id]) or get_character_role(detail)
                 if character_role is None and isinstance(detail.get('character'), dict):
@@ -468,7 +466,7 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             self._boss_names_cache = sorted(available_bosses, key=str.casefold)
             self._boss_names_cache_at = asyncio.get_running_loop().time()
             deprioritized = DeprioritizedCharacter.get_for_guild(ctx.guild.id)
-            selected, excluded, allocated_items_by_character = recommend_roster_with_allocations(
+            selected, _, allocated_items_by_character = recommend_roster_with_allocations(
                 candidate_names,
                 needs_by_character,
                 deprioritized,
@@ -491,7 +489,6 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
                 selected,
                 roles_by_character,
                 needs_by_character,
-                upgrade_percentages_by_character,
                 allocated_items_by_character,
                 upgrade_scores_by_character,
             )
@@ -517,24 +514,6 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
                     value=f'{field_header}\n' + '\n'.join(field_rows),
                     inline=False,
                 )
-            if excluded:
-                selected_role_counts = {role: len(selected_by_role[role]) for role in ROLE_QUOTAS}
-                exclusion_reasons = []
-                for name, item_names in excluded.items():
-                    role = roles_by_character.get(name)
-                    if name.casefold() in blacklisted_normalized:
-                        reason = 'blacklisted'
-                    elif role is None:
-                        reason = 'role unavailable in WoWAudit data'
-                    elif item_names:
-                        reason = f'item cap ({", ".join(item_names)})'
-                    elif selected_role_counts[role] >= ROLE_QUOTAS[role]:
-                        reason = f'{role} slots filled'
-                    else:
-                        reason = 'roster optimization'
-                    exclusion_reasons.append(f'{name}: {reason}')
-                exclusion_text = '\n'.join(exclusion_reasons)
-                result.add_field(name='Not selected', value=exclusion_text[:1024], inline=False)
             await ctx.followup.send(embed=result, ephemeral=True)
         except Exception:
             await ctx.followup.send('Could not retrieve or process the WoWAudit wishlists. Check the API configuration and try again.', ephemeral=True)
