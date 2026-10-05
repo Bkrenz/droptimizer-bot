@@ -46,7 +46,7 @@ def _role_from_label(value: str) -> str | None:
         return 'tank'
     if 'heal' in normalized_role:
         return 'healer'
-    if 'damage' in normalized_role or 'dps' in normalized_role:
+    if any(role_term in normalized_role for role_term in ('damage', 'dps', 'melee', 'ranged')):
         return 'damage'
     return None
 

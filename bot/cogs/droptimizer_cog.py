@@ -395,7 +395,11 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
 
         await ctx.defer(ephemeral=True)
         try:
-            overview = await WowAudit.get_wishlist_overview()
+            overview, character_roster = await asyncio.gather(
+                WowAudit.get_wishlist_overview(),
+                WowAudit.get_characters(),
+            )
+            roster_by_id = {character['id']: character for character in character_roster}
             roster_records = []
             seen_character_ids = set()
             for character in overview.get('characters', []):
@@ -436,7 +440,8 @@ class DroptimizerCog(commands.Cog, name='Droptimizer'):
             for character_id, detail in details_by_id.items():
                 character_name = names_by_id[character_id]
                 needs_by_character[character_name] = get_boss_item_needs(detail, boss_name)
-                character_role = get_character_role(records_by_id[character_id]) or get_character_role(detail)
+                character_role = get_character_role(roster_by_id.get(character_id, {}))
+                character_role = character_role or get_character_role(records_by_id[character_id]) or get_character_role(detail)
                 if character_role is None and isinstance(detail.get('character'), dict):
                     character_role = get_character_role(detail['character'])
                 if character_role is not None:

@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 WOW_AUDIT_URL = 'https://wowaudit.com/v1/wishlists'
+WOW_AUDIT_CHARACTERS_URL = 'https://wowaudit.com/v1/characters'
 
 class WowAudit:
 
@@ -42,6 +43,17 @@ class WowAudit:
         }
         async with aiohttp.ClientSession() as session:
             async with session.get(WOW_AUDIT_URL, headers=headers) as response:
+                response.raise_for_status()
+                return await response.json()
+
+    @staticmethod
+    async def get_characters():
+        headers = {
+            'accept': 'application/json',
+            'Authorization': WowAudit._authorization_header(),
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.get(WOW_AUDIT_CHARACTERS_URL, headers=headers) as response:
                 response.raise_for_status()
                 return await response.json()
 
